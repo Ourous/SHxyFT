@@ -1,0 +1,206 @@
+﻿use System.Windows.Forms
+use System.Drawing
+use System.ComponentModel
+
+class Window inherits Form is partial
+
+	cue init
+		#TODO ADD PREVIEW BUTTON
+		base.init
+		Application.enableVisualStyles
+
+		.minimumSize=Size(800,600)
+
+		uxLayoutLv1 = TableLayoutPanel(
+			parent=this,
+			dock=DockStyle.Fill,
+			columnCount=2,
+			rowCount=1
+			)
+
+		uxLayoutLv1.columnStyles.addRange([
+			ColumnStyle(SizeType.AutoSize),
+			ColumnStyle(SizeType.Percent, 1)
+			])
+
+		uxLayoutLv1.rowStyles.addRange([
+			RowStyle(SizeType.AutoSize)
+			])
+
+		uxLayoutLv2 = TableLayoutPanel(
+			parent=uxLayoutLv1,
+			anchor=AnchorStyles( Bottom, Top, Left ),
+			dock=DockStyle.Fill,
+			columnCount=2,
+			rowCount=7,
+			width=200
+			)
+
+		uxLayoutLv2.columnStyles.addRange([
+			ColumnStyle(SizeType.Percent, 1),
+			ColumnStyle(SizeType.Percent, 1)
+			])
+
+		uxLayoutLv2.rowStyles.addRange([
+			RowStyle(), #1
+			RowStyle(), #2
+			RowStyle(), #3
+			RowStyle(), #4
+			RowStyle(), #5
+			RowStyle(), #6
+			RowStyle()  #7
+			])
+
+		
+		uxPreview = PictureBox(
+			parent=uxLayoutLv1,
+			dock=DockStyle.Fill,
+			image=Bitmap(1,1)
+			)
+
+		listen uxPreview.resize, do(sender, e as EventArgs?)
+			if uxPreview.width > uxPreview.image.width and uxPreview.height > uxPreview.image.height
+				uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
+			else
+				uxPreview.sizeMode = PictureBoxSizeMode.Zoom
+
+		listen Program.PreviewRefresh, do(img as Bitmap)
+			uxPreview.image = img
+			if uxPreview.width > uxPreview.image.width and uxPreview.height > uxPreview.image.height
+				uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
+			else
+				uxPreview.sizeMode = PictureBoxSizeMode.Zoom
+			uxPreview.refresh
+
+		#setup for file menu
+		uxOpenButton = Button(
+			parent=uxLayoutLv2,
+			text='Open',
+			dock=DockStyle.Fill
+			)
+
+		listen uxOpenButton.click, do(sender, e as EventArgs?)
+			openDialog = OpenFileDialog(defaultExt='png')
+			response = openDialog.showDialog
+			if response == DialogResult.OK
+				file = openDialog.fileName
+				try
+					Program.sourceImage = Bitmap(file)
+				catch
+					MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+		uxSaveButton = Button(
+			parent=uxLayoutLv2,
+			text='Save',
+			dock=DockStyle.Fill
+			)
+
+		listen uxSaveButton.click, do(sender, e as EventArgs?)
+			saveDialog = SaveFileDialog(
+				defaultExt='png',
+				addExtension=true,
+				filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap (*.bmp)|.bmp'
+				)
+			response = saveDialog.showDialog
+			if response == DialogResult.OK
+				file = saveDialog.fileName
+				try
+					Program.currentImage.save(file)
+				catch
+					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+
+		#setup for undo redo
+		uxUndoButton = Button(
+			parent=uxLayoutLv2,
+			text='Undo',
+			dock=DockStyle.Fill
+			)
+
+		listen uxUndoButton.click, do(sender, e as EventArgs)
+			Program.undo
+
+		uxRedoButton = Button(
+			parent=uxLayoutLv2,
+			text='Redo',
+			dock=DockStyle.Fill
+			)
+
+		listen uxRedoButton.click, do(sender, e as EventArgs)
+			Program.redo
+
+
+		#setup degbox
+		raDegBox = TextBox(
+			parent=uxLayoutLv2,
+			text='0.0',
+			dock=DockStyle.Fill
+			)
+
+
+		raIndexTypeSelector = ComboBox(
+			parent=uxLayoutLv2,
+			dropDownStyle=ComboBoxStyle.DropDownList,
+			dock=DockStyle.Fill
+			)
+
+		raIndexTypeSelector.items.addRange(@[
+			IndexType.ALPHA to Object,
+			IndexType.BLUE to Object,
+			IndexType.CYAN to Object,
+			IndexType.GREEN to Object,
+			IndexType.KVALUE to Object,
+			IndexType.LUMINANCE to Object,
+			IndexType.MAGENTA to Object,
+			IndexType.RED to Object,
+			IndexType.SATURATION to Object,
+			IndexType.YELLOW to Object
+			])
+
+		raIndexTypeSelector.selectedItem = IndexType.LUMINANCE
+
+		raMinBox = TextBox(
+			parent=uxLayoutLv2,
+			text='100',
+			dock=DockStyle.Fill
+			)
+		raMaxBox = TextBox(
+			parent=uxLayoutLv2,
+			text='255',
+			dock=DockStyle.Fill
+			)
+
+		uxRenderOrCancelButton = Button(
+			parent=uxLayoutLv2,
+			text='Render',
+			dock=DockStyle.Fill
+			)
+
+
+		listen uxRenderOrCancelButton.click, do(sender, e as EventArgs?)
+			if uxRenderOrCancelButton.text == 'Cancel'
+				Program.renderThread.cancelAsync
+				uxRenderOrCancelButton.text = 'Render'
+			else
+				Program.renderThread.runWorkerAsync(@[
+					Program.currentImage to Object,
+					float.parse(raDegBox.text to!) to Object,
+					raIndexTypeSelector.selectedItem,
+					Pair<of float>(float.parse(raMinBox.text to!), float.parse(raMaxBox.text to!))
+					])
+
+				uxRenderOrCancelButton.text = 'Cancel'
+
+		uxRenderProgressBar = ProgressBar(
+			parent=uxLayoutLv2,
+			minimum=0,
+			maximum=100,
+			dock=DockStyle.Fill
+			)
+
+		listen Program.renderThread.progressChanged, do(sender, e as ProgressChangedEventArgs)
+			uxRenderProgressBar.value = e.progressPercentage
+
+		listen Program.renderThread.runWorkerCompleted, do(sender, e as RunWorkerCompletedEventArgs)
+			uxRenderOrCancelButton.text = 'Render'
+			uxRenderProgressBar.value = 0

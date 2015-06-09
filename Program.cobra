@@ -1,0 +1,59 @@
+﻿use System.Drawing
+use System.Windows.Forms
+use System.Threading
+use System.ComponentModel
+
+class Program
+
+	event PreviewRefresh as PreviewRefreshHandler is shared
+	sig PreviewRefreshHandler(img as Bitmap)
+
+	shared
+		get renderThread from __renderThread as BackgroundWorker = BackgroundWorker(workerSupportsCancellation=true,workerReportsProgress=true)
+		var __sourceImage as Bitmap?
+		pro sourceImage as Bitmap
+			get
+				return __sourceImage to !
+			set
+				__sourceImage = value
+				__history = [value]
+				__historyIndex = 0
+				raise .PreviewRefresh, .currentImage
+
+		get currentImage as Bitmap
+			return Bitmap(__history[__historyIndex])
+
+		var __history as List<of Bitmap>?
+
+		var __historyIndex as int = 0
+
+		def undo
+			print __history, __historyIndex
+			if __historyIndex - 1 == -1
+				pass
+			else
+				__historyIndex -= 1
+				raise .PreviewRefresh, .currentImage
+
+		def redo
+			if __historyIndex + 1 == __history.count
+				pass
+			else
+				__historyIndex += 1
+				raise .PreviewRefresh, .currentImage
+
+		def main has STAThread
+			listen __renderThread.doWork, ref Renderer.render
+			listen __renderThread.runWorkerCompleted, do(sender, e as RunWorkerCompletedEventArgs)
+				try
+					img = e.result to Bitmap
+				catch ex as Exception
+					print ex.message
+				success
+					__history = __history[:__historyIndex+=1]+[img]
+					raise .PreviewRefresh, img
+			try
+				Application.run(Window())
+			catch ex as Exception
+				print ex.message
+			

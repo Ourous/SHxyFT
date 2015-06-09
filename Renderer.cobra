@@ -1,0 +1,235 @@
+﻿@number float
+
+use System.ComponentModel
+use System.Drawing
+use System.Threading
+use System.Drawing.Imaging
+
+class Renderer
+
+	def render(sender, e as DoWorkEventArgs) is shared
+		__render(sender, e)
+
+	def __render(sender, e as DoWorkEventArgs) is shared
+		worker = sender to BackgroundWorker
+		args = e.argument to Object[]
+		source = args[0] to Bitmap
+		initialAngle = args[1] to float
+		indexType = args[2] to IndexType
+		indexRange = args[3] to Pair<of float>
+		rangeSet = @[indexRange]
+		#do sorting
+
+		rft = __normalizeRFT(initialAngle)
+		fnAngle = __normalizeAngle(initialAngle)
+
+		source.rotateFlip(rft)
+
+		rectangle = Rectangle(0, 0, source.width, source.height)
+		data = source.lockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb) to !
+		pointer = data.scan0
+		bytes = uint8[](data.stride * source.height)
+		System.Runtime.InteropServices.Marshal.copy(pointer, bytes, 0, data.stride * source.height)
+
+		#
+
+		xs = -1
+		start = -1
+		first = -1
+		pct = 0
+		t_ind = float[](source.width)
+		t_pyx = Pixel[](source.width)
+		t_slc = int[](source.width)
+
+		#
+
+		inclination = fnAngle#below x-axis
+		gradient = (inclination * Math.pi / 180).tan
+		min_offset = (-gradient * source.width).ceiling to int
+		max_offset = source.height
+
+		#if min_offset, rft ^= RotateFlipType.RotateNoneFlipX
+
+
+		if min_offset
+			for offset in min_offset:max_offset
+				if worker.cancellationPending
+					e.cancel = true
+					break
+
+				min_range = ((0 - offset - 1) / gradient).floor to int +1
+				if min_range < 0, min_range = 0
+
+				max_range = ((source.height - offset - 1) / gradient).floor to int +1
+				if max_range > source.width, max_range = source.width
+
+
+				for x in min_range:max_range
+					pct += 1
+					y = source.height - ((gradient * x).ceiling to int + offset + 1)
+					pos = (y * data.stride) + (x * 4)
+					pixel = Pixel(bytes[pos+3],bytes[pos+2],bytes[pos+1],bytes[pos])
+					index = __pixelIndex(indexType, pixel)
+					if index.isNaN, index = 0
+					if __isInRangeSet(index, rangeSet)
+						if xs == -1, xs = x
+						t_ind[x], t_pyx[x], t_slc[x] = index, pixel, pos
+					else if xs <> -1
+						Array.sort(t_ind, t_pyx, xs, x-xs)
+						for n in xs:x
+							ns = t_slc[n]
+							bytes[ns+3], bytes[ns+2], bytes[ns+1], bytes[ns] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+						xs = -1
+
+
+				if xs <> -1
+					Array.sort(t_ind, t_pyx, xs, x-xs)
+					for n in xs:x-1
+						ns = t_slc[n]
+						bytes[ns+3], bytes[ns+2], bytes[ns+1], bytes[ns] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+					xs = -1
+				worker.reportProgress((pct / ((source.width*source.height) / 100f)) to int)
+
+		else
+			for y in source.height
+				if worker.cancellationPending
+					e.cancel = true
+					break
+				for x in source.width
+
+					pct += 1
+					pos = (y * data.stride) + (x * 4)
+	
+					pixel = Pixel(bytes[pos + 3], bytes[pos + 2], bytes[pos + 1], bytes[pos])
+	
+					index = __pixelIndex(indexType, pixel)
+					if index.isNaN, index = 0
+	
+					if __isInRangeSet(index, rangeSet)
+						if start == -1, start, first = pos, x
+						t_ind[x], t_pyx[x] = index, pixel
+					else if start <> -1
+						Array.sort(t_ind, t_pyx, first, x-first)
+						for n in first:x
+							bytes[start + 3], bytes[start + 2], bytes[start + 1], bytes[start] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+							start += 4
+						start = -1
+	
+				#TODO check cancel
+				if start <> -1
+					Array.sort(t_ind, t_pyx, first, x-first)
+					for n in first:x-1
+						bytes[start + 3], bytes[start + 2], bytes[start + 1], bytes[start] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+						start += 4
+					start = -1#/
+				worker.reportProgress((pct / ((source.width*source.height) / 100f)) to int)
+
+		System.Runtime.InteropServices.Marshal.copy(bytes, 0, pointer, data.stride * source.height)
+		source.unlockBits(data)
+
+		worker.reportProgress(100)
+
+		source.rotateFlip(rft)
+
+		e.result = source
+
+
+	def __normalizeAngle(angle as float) as float is shared
+		"""
+		Normalize an angle to 0-45 degrees of declination
+		"""
+		require
+			0f <= angle <= 360f
+
+		body
+			adj = (angle+315)%360
+			nw = if((adj//45)%2,adj%45,45-adj%45)
+			return nw
+
+	def __normalizeRFT(angle as float) as RotateFlipType is shared
+		require
+			0 <= angle < 360
+
+		body
+			if 0 <= angle <= 45
+				return RotateFlipType.Rotate270FlipX
+			else if 315 <= angle < 360
+				return RotateFlipType.Rotate270FlipNone
+			else if 270 <= angle < 315
+				return RotateFlipType.Rotate180FlipX
+			else if 225 <= angle < 270
+				return RotateFlipType.Rotate180FlipNone
+			else if 180 <= angle < 225
+				return RotateFlipType.Rotate90FlipX
+			else if 135 <= angle < 180
+				return RotateFlipType.Rotate90FlipNone
+			else if 90 <= angle < 135
+				return RotateFlipType.RotateNoneFlipX
+			else
+				return RotateFlipType.RotateNoneFlipNone
+
+	def __isInRangeSet(num as float, rangeSet as Pair<of float>*) as bool is shared
+		for range in rangeSet
+			if (num%range.a<>num or num==range.a) and (num%range.b==num or num==range.b)
+				return true
+		return false
+
+
+	def __pixelIndex(pixelIndexType as IndexType, pixel as Pixel) as float is shared
+		"""
+		Generate a specific index of a pixel
+		"""
+		a, r, g, b = pixel.a, pixel.r, pixel.g, pixel.b
+		branch pixelIndexType
+			on IndexType.LUMINANCE
+				# Luminance is between 0-255, dark => light
+				return 0.299*r + 0.587*g + 0.114*b
+			on IndexType.RED
+				return __colorDiff(pixel,Pixel(255u8,0u8,0u8))
+			on IndexType.GREEN
+				return __colorDiff(pixel,Pixel(0u8,255u8,0u8))
+			on IndexType.BLUE
+				return __colorDiff(pixel,Pixel(0u8,0u8,255u8))
+			on IndexType.ALPHA
+				# Alpha is between 0-255
+				return a to float
+			on IndexType.COLORDIFF
+				return 0f
+			on IndexType.SATURATION
+				return 0f
+			else
+				# Calculate the K value of the pixel
+				red, green, blue = r/2.55f, g/2.55f, b/2.55f
+				chromacy = 100 - if(red>=blue and red>=green,red,if(green>=blue,green,blue))
+				# CMYK indexes are adjusted to the range 0-100, instead of 0-1
+				branch pixelIndexType
+					on IndexType.CYAN
+						# Cyan is between 0-100
+						#return (100 - red - chromacy) / (100 - chromacy)
+						return __colorDiff(pixel, Pixel(0u8, 255u8, 255u8))
+					on IndexType.MAGENTA
+						# Magenta is between 0-100
+						#return (100 - green - chromacy) / (100 - chromacy)
+						return __colorDiff(pixel, Pixel(255u8, 0u8, 255u8))
+					on IndexType.YELLOW
+						# Yellow is bewteen 0-100
+						#return (100 - blue - chromacy) / (100 - chromacy)
+						return __colorDiff(pixel, Pixel(255u8, 255u8, 0u8))
+					else
+						# Chromacy is between 0-100, light => dark
+						return chromacy*2.55f
+
+	def __colorDiff(pixel1 as Pixel, pixel2 as Pixel) as float is shared
+		d = ((pixel1.r-pixel2.r)**2+(pixel1.g-pixel2.g)**2+(pixel1.b-pixel2.b)**2)**0.5
+		return 255- d / 3f.sqrt
+
+
+	struct Pixel
+		get a from var as uint8
+		get r from var as uint8
+		get g from var as uint8
+		get b from var as uint8
+		cue init(a as uint8, r as uint8, g as uint8, b as uint8)
+			_a, _r, _g, _b = a, r, g, b
+		cue init(r as uint8, g as uint8, b as uint8)
+			this.init(255u8, r, g, b)

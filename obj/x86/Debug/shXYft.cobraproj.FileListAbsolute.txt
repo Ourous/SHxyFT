@@ -1,0 +1,4 @@
+C:\Users\Ourous\Documents\Projects\shXYft\shXYft\bin\Debug\shXYft.exe
+C:\Users\Ourous\Documents\Projects\shXYft\shXYft\bin\Debug\shXYft.pdb
+C:\Users\Ourous\Documents\Projects\shXYft\shXYft\obj\x86\Debug\shXYft.exe
+C:\Users\Ourous\Documents\Projects\shXYft\shXYft\obj\x86\Debug\shXYft.pdb
