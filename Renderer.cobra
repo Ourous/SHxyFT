@@ -6,6 +6,11 @@ use System.Threading
 use System.Drawing.Imaging
 
 class Renderer
+	"""
+	Renderer
+	"""
+	#TODO add better description
+	#TODO create render method that is invokeable without using a backgroundworker
 
 	def render(sender, e as DoWorkEventArgs) is shared
 		__render(sender, e)
@@ -20,7 +25,7 @@ class Renderer
 		rangeSet = @[indexRange]
 		#do sorting
 
-		rft = __normalizeRFT(initialAngle)
+		rft, rft_revert = __normalizeRFT(initialAngle)
 		fnAngle = __normalizeAngle(initialAngle)
 
 		source.rotateFlip(rft)
@@ -129,7 +134,7 @@ class Renderer
 
 		worker.reportProgress(100)
 
-		source.rotateFlip(rft)
+		source.rotateFlip(rft_revert)
 
 		e.result = source
 
@@ -146,27 +151,27 @@ class Renderer
 			nw = if((adj//45)%2,adj%45,45-adj%45)
 			return nw
 
-	def __normalizeRFT(angle as float) as RotateFlipType is shared
+	def __normalizeRFT(angle as float) as Pair<of RotateFlipType> is shared
 		require
 			0 <= angle < 360
 
 		body
 			if 0 <= angle <= 45
-				return RotateFlipType.Rotate270FlipX
+				return Pair<of RotateFlipType>(RotateFlipType.Rotate90FlipY, RotateFlipType.Rotate270FlipX)
 			else if 315 <= angle < 360
-				return RotateFlipType.Rotate270FlipNone
+				return Pair<of RotateFlipType>(RotateFlipType.Rotate90FlipNone, RotateFlipType.Rotate270FlipNone)
 			else if 270 <= angle < 315
-				return RotateFlipType.Rotate180FlipX
+				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipX, RotateFlipType.RotateNoneFlipX)
 			else if 225 <= angle < 270
-				return RotateFlipType.Rotate180FlipNone
+				return Pair<of RotateFlipType>(RotateFlipType.Rotate180FlipNone, RotateFlipType.Rotate180FlipNone)
 			else if 180 <= angle < 225
-				return RotateFlipType.Rotate90FlipX
+				return Pair<of RotateFlipType>(RotateFlipType.Rotate270FlipY, RotateFlipType.Rotate90FlipX)
 			else if 135 <= angle < 180
-				return RotateFlipType.Rotate90FlipNone
+				return Pair<of RotateFlipType>(RotateFlipType.Rotate270FlipNone, RotateFlipType.Rotate90FlipNone)
 			else if 90 <= angle < 135
-				return RotateFlipType.RotateNoneFlipX
+				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipY, RotateFlipType.RotateNoneFlipY)
 			else
-				return RotateFlipType.RotateNoneFlipNone
+				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipNone, RotateFlipType.RotateNoneFlipNone)
 
 	def __isInRangeSet(num as float, rangeSet as Pair<of float>*) as bool is shared
 		for range in rangeSet
