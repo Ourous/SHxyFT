@@ -41,10 +41,10 @@ class Renderer
 		xs = -1
 		start = -1
 		first = -1
-		pct = 0
-		t_ind = float[](source.width)
-		t_pyx = Pixel[](source.width)
-		t_slc = int[](source.width)
+		percent_counter = 0
+		indexes = float[](source.width)
+		pixels = Pixel[](source.width)
+		slice = int[](source.width)
 
 		#
 
@@ -70,7 +70,7 @@ class Renderer
 
 
 				for x in min_range:max_range
-					pct += 1
+					percent_counter += 1
 					y = source.height - ((gradient * x).ceiling to int + offset + 1)
 					pos = (y * data.stride) + (x * 4)
 					pixel = Pixel(bytes[pos+3],bytes[pos+2],bytes[pos+1],bytes[pos])
@@ -78,22 +78,22 @@ class Renderer
 					if index.isNaN, index = 0
 					if __isInRangeSet(index, rangeSet)
 						if xs == -1, xs = x
-						t_ind[x], t_pyx[x], t_slc[x] = index, pixel, pos
+						indexes[x], pixels[x], slice[x] = index, pixel, pos
 					else if xs <> -1
-						Array.sort(t_ind, t_pyx, xs, x-xs)
+						Array.sort(indexes, pixels, xs, x-xs)
 						for n in xs:x
-							ns = t_slc[n]
-							bytes[ns+3], bytes[ns+2], bytes[ns+1], bytes[ns] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+							ns = slice[n]
+							bytes[ns+3], bytes[ns+2], bytes[ns+1], bytes[ns] = pixels[n].a, pixels[n].r, pixels[n].g, pixels[n].b
 						xs = -1
 
 
 				if xs <> -1
-					Array.sort(t_ind, t_pyx, xs, x-xs)
+					Array.sort(indexes, pixels, xs, x-xs)
 					for n in xs:x-1
-						ns = t_slc[n]
-						bytes[ns+3], bytes[ns+2], bytes[ns+1], bytes[ns] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+						ns = slice[n]
+						bytes[ns+3], bytes[ns+2], bytes[ns+1], bytes[ns] = pixels[n].a, pixels[n].r, pixels[n].g, pixels[n].b
 					xs = -1
-				worker.reportProgress((pct / ((source.width*source.height) / 100f)) to int)
+				worker.reportProgress((percent_counter / ((source.width*source.height) / 100f)) to int)
 
 		else
 			for y in source.height
@@ -102,7 +102,7 @@ class Renderer
 					break
 				for x in source.width
 
-					pct += 1
+					percent_counter += 1
 					pos = (y * data.stride) + (x * 4)
 	
 					pixel = Pixel(bytes[pos + 3], bytes[pos + 2], bytes[pos + 1], bytes[pos])
@@ -112,22 +112,22 @@ class Renderer
 	
 					if __isInRangeSet(index, rangeSet)
 						if start == -1, start, first = pos, x
-						t_ind[x], t_pyx[x] = index, pixel
+						indexes[x], pixels[x] = index, pixel
 					else if start <> -1
-						Array.sort(t_ind, t_pyx, first, x-first)
+						Array.sort(indexes, pixels, first, x-first)
 						for n in first:x
-							bytes[start + 3], bytes[start + 2], bytes[start + 1], bytes[start] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+							bytes[start + 3], bytes[start + 2], bytes[start + 1], bytes[start] = pixels[n].a, pixels[n].r, pixels[n].g, pixels[n].b
 							start += 4
 						start = -1
 	
 				#TODO check cancel
 				if start <> -1
-					Array.sort(t_ind, t_pyx, first, x-first)
+					Array.sort(indexes, pixels, first, x-first)
 					for n in first:x-1
-						bytes[start + 3], bytes[start + 2], bytes[start + 1], bytes[start] = t_pyx[n].a, t_pyx[n].r, t_pyx[n].g, t_pyx[n].b
+						bytes[start + 3], bytes[start + 2], bytes[start + 1], bytes[start] = pixels[n].a, pixels[n].r, pixels[n].g, pixels[n].b
 						start += 4
-					start = -1#/
-				worker.reportProgress((pct / ((source.width*source.height) / 100f)) to int)
+					start = -1
+				worker.reportProgress((percent_counter / ((source.width*source.height) / 100f)) to int)
 
 		System.Runtime.InteropServices.Marshal.copy(bytes, 0, pointer, data.stride * source.height)
 		source.unlockBits(data)
@@ -141,21 +141,39 @@ class Renderer
 
 	def __normalizeAngle(angle as float) as float is shared
 		"""
-		Normalize an angle to 0-45 degrees of declination
+		Normalize an angle to 0-45 degrees of inclination above the x-axis, resulting in the same vector drawn on a plane following __normalizeRFT
 		"""
+
 		require
-			0f <= angle <= 360f
+
+			0f <= angle < 360f
+
+
+		ensure
+
+			0f <= result <= 45f
+
 
 		body
+
 			adj = (angle+315)%360
 			nw = if((adj//45)%2,adj%45,45-adj%45)
+
 			return nw
+		
 
 	def __normalizeRFT(angle as float) as Pair<of RotateFlipType> is shared
+		"""
+		Normalize a plane to fit a vector that has been adjusted by __normalizeAngle to the same relative orientation
+		"""
+
 		require
+
 			0 <= angle < 360
 
+
 		body
+
 			if 0 <= angle <= 45
 				return Pair<of RotateFlipType>(RotateFlipType.Rotate90FlipY, RotateFlipType.Rotate270FlipX)
 			else if 315 <= angle < 360
@@ -172,8 +190,13 @@ class Renderer
 				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipY, RotateFlipType.RotateNoneFlipY)
 			else
 				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipNone, RotateFlipType.RotateNoneFlipNone)
+			
 
 	def __isInRangeSet(num as float, rangeSet as Pair<of float>*) as bool is shared
+		"""
+		Checks if a number is within a set of ranges, including end points of the ranges.
+		Ranges should follow a pattern of (a, b) where a <= b
+		"""
 		for range in rangeSet
 			if (num%range.a<>num or num==range.a) and (num%range.b==num or num==range.b)
 				return true
@@ -230,11 +253,20 @@ class Renderer
 
 
 	struct Pixel
+		"""
+		Represents a 32-bit ARGB pixel
+		"""
 		get a from var as uint8
 		get r from var as uint8
 		get g from var as uint8
 		get b from var as uint8
 		cue init(a as uint8, r as uint8, g as uint8, b as uint8)
+			"""
+			Alpha, Red, Green, Blue
+			"""
 			_a, _r, _g, _b = a, r, g, b
 		cue init(r as uint8, g as uint8, b as uint8)
-			this.init(255u8, r, g, b)
+			"""
+			(Alpha == 255 is implied), Red, Green, Blue
+			"""
+			this.init(255, r, g, b)

@@ -27,22 +27,18 @@ class Program
 		get currentImage as Bitmap
 			return Bitmap(__history[__historyIndex])
 
+		#handles undo/redo operations behind the scenes
+		#TODO save history in a more memory-friendly way
 		var __history as List<of Bitmap>?
-
-		var __historyIndex as int = 0
+		var __historyIndex as int
 
 		def undo
-			print __history, __historyIndex
-			if __historyIndex - 1 == -1
-				pass
-			else
+			if __historyIndex > 0
 				__historyIndex -= 1
 				raise .PreviewRefresh, .currentImage
 
 		def redo
-			if __historyIndex + 1 == __history.count
-				pass
-			else
+			if __historyIndex < __history.count-1
 				__historyIndex += 1
 				raise .PreviewRefresh, .currentImage
 

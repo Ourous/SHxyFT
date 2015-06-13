@@ -3,6 +3,10 @@ use System.Drawing
 use System.ComponentModel
 
 class Window inherits Form is partial
+	"""
+	UI
+	"""
+	#TODO add better description
 
 	cue init
 		base.init

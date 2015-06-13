@@ -1,11 +1,11 @@
 ﻿<Properties StartupItem="SHxyFT.cobraproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Window.cobra">
+  <MonoDevelop.Ide.Workbench>
     <Files>
       <File FileName="IndexType.cobra" Line="1" Column="1" />
       <File FileName="Program.cobra" Line="1" Column="1" />
       <File FileName="Renderer.cobra" Line="1" Column="1" />
-      <File FileName="Window.cobra" Line="138" Column="16" />
+      <File FileName="Window.cobra" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>
