@@ -4,6 +4,7 @@ use System.ComponentModel
 use System.Drawing
 use System.Threading
 use System.Drawing.Imaging
+use System.Runtime.InteropServices
 
 class Renderer
 	"""
@@ -16,6 +17,10 @@ class Renderer
 		__render(sender, e)
 
 	def __render(sender, e as DoWorkEventArgs) is shared
+		"""
+		Inner render function
+		"""
+
 		worker = sender to BackgroundWorker
 		args = e.argument to Object[]
 		source = args[0] to Bitmap
@@ -34,9 +39,7 @@ class Renderer
 		data = source.lockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb) to !
 		pointer = data.scan0
 		bytes = uint8[](data.stride * source.height)
-		System.Runtime.InteropServices.Marshal.copy(pointer, bytes, 0, data.stride * source.height)
-
-		#
+		Marshal.copy(pointer, bytes, 0, data.stride * source.height)
 
 		xs = -1
 		start = -1
@@ -46,15 +49,10 @@ class Renderer
 		pixels = Pixel[](source.width)
 		slice = int[](source.width)
 
-		#
-
 		inclination = fnAngle#below x-axis
 		gradient = (inclination * Math.pi / 180).tan
 		min_offset = (-gradient * source.width).ceiling to int
 		max_offset = source.height
-
-		#if min_offset, rft ^= RotateFlipType.RotateNoneFlipX
-
 
 		if min_offset
 			for offset in min_offset:max_offset
@@ -129,7 +127,7 @@ class Renderer
 					start = -1
 				worker.reportProgress((percent_counter / ((source.width*source.height) / 100f)) to int)
 
-		System.Runtime.InteropServices.Marshal.copy(bytes, 0, pointer, data.stride * source.height)
+		Marshal.copy(bytes, 0, pointer, data.stride * source.height)
 		source.unlockBits(data)
 
 		worker.reportProgress(100)
@@ -144,6 +142,7 @@ class Renderer
 		Normalize an angle to 0-45 degrees of inclination above the x-axis, resulting in the same vector drawn on a plane following __normalizeRFT
 		"""
 
+
 		require
 
 			0f <= angle < 360f
@@ -154,12 +153,24 @@ class Renderer
 			0f <= result <= 45f
 
 
+		test
+
+			assert __normalizeAngle(0) == 0
+			assert __normalizeAngle(45) == 45
+			assert __normalizeAngle(90) == 0
+			assert __normalizeAngle(135) == 45
+			assert __normalizeAngle(180) == 0
+			assert __normalizeAngle(225) == 45
+			assert __normalizeAngle(270) == 0
+			assert __normalizeAngle(315) == 45
+			expect Exception, __normalizeAngle(360)
+
+
 		body
 
-			adj = (angle+315)%360
-			nw = if((adj//45)%2,adj%45,45-adj%45)
-
-			return nw
+			adjust = (angle + 315) % 360
+			if (adjust // 45) % 2, return adjust % 45
+			else, return 45 - adjust % 45
 		
 
 	def __normalizeRFT(angle as float) as Pair<of RotateFlipType> is shared
@@ -174,22 +185,14 @@ class Renderer
 
 		body
 
-			if 0 <= angle <= 45
-				return Pair<of RotateFlipType>(RotateFlipType.Rotate90FlipY, RotateFlipType.Rotate270FlipX)
-			else if 315 <= angle < 360
-				return Pair<of RotateFlipType>(RotateFlipType.Rotate90FlipNone, RotateFlipType.Rotate270FlipNone)
-			else if 270 <= angle < 315
-				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipX, RotateFlipType.RotateNoneFlipX)
-			else if 225 <= angle < 270
-				return Pair<of RotateFlipType>(RotateFlipType.Rotate180FlipNone, RotateFlipType.Rotate180FlipNone)
-			else if 180 <= angle < 225
-				return Pair<of RotateFlipType>(RotateFlipType.Rotate270FlipY, RotateFlipType.Rotate90FlipX)
-			else if 135 <= angle < 180
-				return Pair<of RotateFlipType>(RotateFlipType.Rotate270FlipNone, RotateFlipType.Rotate90FlipNone)
-			else if 90 <= angle < 135
-				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipY, RotateFlipType.RotateNoneFlipY)
-			else
-				return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipNone, RotateFlipType.RotateNoneFlipNone)
+			if 0 <= angle <= 45,        return Pair<of RotateFlipType>(RotateFlipType.Rotate90FlipY, RotateFlipType.Rotate270FlipX)
+			else if 315 <= angle < 360, return Pair<of RotateFlipType>(RotateFlipType.Rotate90FlipNone, RotateFlipType.Rotate270FlipNone)
+			else if 270 <= angle < 315, return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipX, RotateFlipType.RotateNoneFlipX)
+			else if 225 <= angle < 270, return Pair<of RotateFlipType>(RotateFlipType.Rotate180FlipNone, RotateFlipType.Rotate180FlipNone)
+			else if 180 <= angle < 225, return Pair<of RotateFlipType>(RotateFlipType.Rotate270FlipY, RotateFlipType.Rotate90FlipX)
+			else if 135 <= angle < 180, return Pair<of RotateFlipType>(RotateFlipType.Rotate270FlipNone, RotateFlipType.Rotate90FlipNone)
+			else if 90 <= angle < 135,  return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipY, RotateFlipType.RotateNoneFlipY)
+			else,                       return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipNone, RotateFlipType.RotateNoneFlipNone)
 			
 
 	def __isInRangeSet(num as float, rangeSet as Pair<of float>*) as bool is shared
@@ -197,7 +200,9 @@ class Renderer
 		Checks if a number is within a set of ranges, including end points of the ranges.
 		Ranges should follow a pattern of (a, b) where a <= b
 		"""
+
 		for range in rangeSet
+			#for all relevant purposes to how it's used, equivalent to range.a <= num <= range.b, but faster
 			if (num%range.a<>num or num==range.a) and (num%range.b==num or num==range.b)
 				return true
 		return false
@@ -207,66 +212,93 @@ class Renderer
 		"""
 		Generate a specific index of a pixel
 		"""
-		a, r, g, b = pixel.a, pixel.r, pixel.g, pixel.b
-		branch pixelIndexType
-			on IndexType.LUMINANCE
-				# Luminance is between 0-255, dark => light
-				return 0.299*r + 0.587*g + 0.114*b
-			on IndexType.RED
-				return __colorDiff(pixel,Pixel(255u8,0u8,0u8))
-			on IndexType.GREEN
-				return __colorDiff(pixel,Pixel(0u8,255u8,0u8))
-			on IndexType.BLUE
-				return __colorDiff(pixel,Pixel(0u8,0u8,255u8))
-			on IndexType.ALPHA
-				# Alpha is between 0-255
-				return a to float
-			on IndexType.COLORDIFF
-				return 0f
-			on IndexType.SATURATION
-				return 0f
-			else
-				# Calculate the K value of the pixel
-				red, green, blue = r/2.55f, g/2.55f, b/2.55f
-				chromacy = 100 - if(red>=blue and red>=green,red,if(green>=blue,green,blue))
-				# CMYK indexes are adjusted to the range 0-100, instead of 0-1
-				branch pixelIndexType
-					on IndexType.CYAN
-						# Cyan is between 0-100
-						#return (100 - red - chromacy) / (100 - chromacy)
-						return __colorDiff(pixel, Pixel(0u8, 255u8, 255u8))
-					on IndexType.MAGENTA
-						# Magenta is between 0-100
-						#return (100 - green - chromacy) / (100 - chromacy)
-						return __colorDiff(pixel, Pixel(255u8, 0u8, 255u8))
-					on IndexType.YELLOW
-						# Yellow is bewteen 0-100
-						#return (100 - blue - chromacy) / (100 - chromacy)
-						return __colorDiff(pixel, Pixel(255u8, 255u8, 0u8))
-					else
-						# Chromacy is between 0-100, light => dark
-						return chromacy*2.55f
+
+		ensure
+
+			0f <= result <= 255f
+
+
+		body
+
+			a, r, g, b = pixel.a, pixel.r, pixel.g, pixel.b
+			branch pixelIndexType
+				on IndexType.LUMINANCE
+					# Luminance is between 0-255, dark => light
+					return 0.299*r + 0.587*g + 0.114*b
+				on IndexType.RED
+					return __colorDiff(pixel,Pixel(255u8,0u8,0u8))
+				on IndexType.GREEN
+					return __colorDiff(pixel,Pixel(0u8,255u8,0u8))
+				on IndexType.BLUE
+					return __colorDiff(pixel,Pixel(0u8,0u8,255u8))
+				on IndexType.ALPHA
+					# Alpha is between 0-255
+					return a to float
+				on IndexType.COLORDIFF
+					return 0f
+				on IndexType.SATURATION
+					return 0f
+				else
+					# Calculate the K value of the pixel
+					red, green, blue = r/2.55f, g/2.55f, b/2.55f
+					chromacy = 100 - if(red>=blue and red>=green,red,if(green>=blue,green,blue))
+					# CMYK indexes are adjusted to the range 0-100, instead of 0-1
+					branch pixelIndexType
+						on IndexType.CYAN
+							# Cyan is between 0-100
+							#return (100 - red - chromacy) / (100 - chromacy)
+							return __colorDiff(pixel, Pixel(0u8, 255u8, 255u8))
+						on IndexType.MAGENTA
+							# Magenta is between 0-100
+							#return (100 - green - chromacy) / (100 - chromacy)
+							return __colorDiff(pixel, Pixel(255u8, 0u8, 255u8))
+						on IndexType.YELLOW
+							# Yellow is bewteen 0-100
+							#return (100 - blue - chromacy) / (100 - chromacy)
+							return __colorDiff(pixel, Pixel(255u8, 255u8, 0u8))
+						else
+							# Chromacy is between 0-100, light => dark
+							return chromacy*2.55f
+
 
 	def __colorDiff(pixel1 as Pixel, pixel2 as Pixel) as float is shared
-		d = ((pixel1.r-pixel2.r)**2+(pixel1.g-pixel2.g)**2+(pixel1.b-pixel2.b)**2)**0.5
-		return 255- d / 3f.sqrt
+		"""
+		Color difference between two pixels
+		"""
+
+		ensure
+
+			0f <= result <= 255f
+
+
+		body
+
+			d = ((pixel1.r-pixel2.r)**2+(pixel1.g-pixel2.g)**2+(pixel1.b-pixel2.b)**2)**0.5
+
+			return 255- d / 3f.sqrt
 
 
 	struct Pixel
 		"""
 		Represents a 32-bit ARGB pixel
 		"""
-		get a from var as uint8
-		get r from var as uint8
-		get g from var as uint8
-		get b from var as uint8
+
+		get a from __a as uint8
+		get r from __r as uint8
+		get g from __g as uint8
+		get b from __b as uint8
+
 		cue init(a as uint8, r as uint8, g as uint8, b as uint8)
 			"""
 			Alpha, Red, Green, Blue
 			"""
-			_a, _r, _g, _b = a, r, g, b
+
+			__a, __r, __g, __b = a, r, g, b
+
+
 		cue init(r as uint8, g as uint8, b as uint8)
 			"""
 			(Alpha == 255 is implied), Red, Green, Blue
 			"""
+
 			this.init(255, r, g, b)
