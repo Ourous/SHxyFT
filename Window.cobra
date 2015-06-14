@@ -14,7 +14,7 @@ class Window inherits Form is partial
 		#set minimum size to something sensible
 		.minimumSize=Size(800,600)
 
-		#hover-over help text for the window
+		# hover-over help text for the window
 		uxHelp = ToolTip()
 
 		#first layout level, contains:
