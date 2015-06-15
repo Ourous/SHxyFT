@@ -194,7 +194,10 @@ class Window inherits Form is partial
 			IndexType.MAGENTA to Object,
 			IndexType.RED to Object,
 			IndexType.SATURATION to Object,
-			IndexType.YELLOW to Object
+			IndexType.YELLOW to Object,
+			IndexType.HUE to Object,
+			IndexType.COLORDIFF to Object,
+			IndexType.VALUE to Object
 			])
 
 		#start the index selector with the most 

@@ -85,8 +85,6 @@ class Renderer
 				pixel = Pixel(bytes[pos+3], bytes[pos+2], bytes[pos+1], bytes[pos])
 
 				index = __pixelIndex(indexType, pixel)
-				# TODO handle NaN problems inside the indexer
-				if index.isNaN, index = 0
 
 				# check if the current pixel is inside a region to be sorted
 				if __isInRangeSet(index, rangeSet)
@@ -161,8 +159,6 @@ class Renderer
 				pixel = Pixel(bytes[pos + 3], bytes[pos + 2], bytes[pos + 1], bytes[pos])
 
 				index = __pixelIndex(indexType, pixel)
-				# TODO handle NaN problems inside the indexer
-				if index.isNaN, index = 0
 
 				# check if the current pixel is inside a region to be sorted
 				if __isInRangeSet(index, rangeSet)
@@ -275,7 +271,7 @@ class Renderer
 
 		require
 
-			0 <= angle < 360
+			0f <= angle < 360f
 
 
 		body
@@ -308,57 +304,66 @@ class Renderer
 		return false
 
 
-	def __pixelIndex(pixelIndexType as IndexType, pixel as Pixel) as float is shared
+	def __pixelIndex(pixelIndexType as IndexType, pixel as Pixel, color as Pixel? = nil) as float is shared
 		"""
 		Generate a specific index of a pixel
 		"""
 
+		require
+
+			if(pixelIndexType == IndexType.COLORDIFF, color <> nil, true)
+
+
 		ensure
 
-			0f <= result <= 255f
+			not result.isNaN
 
 
 		body
 
-			a, r, g, b = pixel.a, pixel.r, pixel.g, pixel.b
+			alpha, red, green, blue = pixel.a, pixel.r, pixel.g, pixel.b
+			rDif, gDif, bDif = red/255f, green/255f, blue/255f
+			cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
+			cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
+			delta = cMax - cMin
+			kVal = 1 - cMax
 			branch pixelIndexType
 				on IndexType.LUMINANCE
 					# Luminance is between 0-255, dark => light
-					return 0.299*r + 0.587*g + 0.114*b
+					ret = 0.299*red + 0.587*green + 0.114*blue
 				on IndexType.RED
-					return __colorDiff(pixel,Pixel(255u8,0u8,0u8))
+					ret = red to float
 				on IndexType.GREEN
-					return __colorDiff(pixel,Pixel(0u8,255u8,0u8))
+					ret = green to float
 				on IndexType.BLUE
-					return __colorDiff(pixel,Pixel(0u8,0u8,255u8))
+					ret = blue to float
 				on IndexType.ALPHA
-					# Alpha is between 0-255
-					return a to float
+					ret = alpha to float
 				on IndexType.COLORDIFF
-					return 0f
+					ret = __colorDiff(pixel, color to !)
+				on IndexType.HUE
+					if delta == 0, ret = 0f
+					else if cMax == rDif, ret = 60* (((gDif - bDif) / delta) % 6)
+					else if cMax == gDif, ret = 60* (((bDif - rDif) / delta) + 2)
+					else if cMax == bDif, ret = 60* (((rDif - gDif) / delta) + 6)
 				on IndexType.SATURATION
-					return 0f
-				else
-					# Calculate the K value of the pixel
-					red, green, blue = r/2.55f, g/2.55f, b/2.55f
-					chromacy = 100 - if(red>=blue and red>=green,red,if(green>=blue,green,blue))
-					# CMYK indexes are adjusted to the range 0-100, instead of 0-1
-					branch pixelIndexType
-						on IndexType.CYAN
-							# Cyan is between 0-100
-							#return (100 - red - chromacy) / (100 - chromacy)
-							return __colorDiff(pixel, Pixel(0u8, 255u8, 255u8))
-						on IndexType.MAGENTA
-							# Magenta is between 0-100
-							#return (100 - green - chromacy) / (100 - chromacy)
-							return __colorDiff(pixel, Pixel(255u8, 0u8, 255u8))
-						on IndexType.YELLOW
-							# Yellow is bewteen 0-100
-							#return (100 - blue - chromacy) / (100 - chromacy)
-							return __colorDiff(pixel, Pixel(255u8, 255u8, 0u8))
-						else
-							# Chromacy is between 0-100, light => dark
-							return chromacy*2.55f
+					ret = delta / cMax
+				on IndexType.CYAN
+					# Cyan is between 0-1
+					ret = (1 - rDif - kVal) / (1 - kVal)
+				on IndexType.MAGENTA
+					# Magenta is between 0-1
+					ret = (1 - gDif - kVal) / (1 - kVal)
+				on IndexType.YELLOW
+					# Yellow is bewteen 0-1
+					ret = (1 - bDif - kVal) / (1 - kVal)
+				on IndexType.KVALUE
+					# K-Value is between 0-1, light => dark
+					ret = kVal
+				on IndexType.VALUE
+					ret = cMax
+
+			return if(ret.isNaN, 0f, ret)
 
 
 	def __colorDiff(pixel1 as Pixel, pixel2 as Pixel) as float is shared
