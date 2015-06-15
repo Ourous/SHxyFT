@@ -5,6 +5,7 @@ use System.Drawing
 use System.Threading
 use System.Drawing.Imaging
 use System.Runtime.InteropServices
+use System.Diagnostics
 
 class Renderer
 	"""
@@ -13,8 +14,23 @@ class Renderer
 	#TODO add better description
 	#TODO create render method that is invokeable without using a backgroundworker
 
+	/#def renderOnBackgroundWorker as BackgroundWorker is shared
+		worker = BackgroundWorker()
+		listen worker.doWork, do(sender, e as DoWorkEventArgs)
+			interrupt = Func<of bool>(do)
+				if sender.cancellationPending
+					e.cancel = true
+					return true
+				return false
+			args = #/
+
 	def render(sender, e as DoWorkEventArgs) is shared
+		"""
+		Outer render funciton
+		"""
+
 		__render(sender, e)
+
 
 	def __render(sender, e as DoWorkEventArgs) is shared
 		"""
@@ -56,7 +72,6 @@ class Renderer
 		gradient = (inclination * Math.pi / 180).tan
 		offsetMin = (-gradient * source.width).ceiling to int
 		offsetMax = source.height
-
 
 		# check if the gradient actually results in any change in the slices
 		# compared to zero-gradient, based on the size of the plane being sliced
@@ -260,8 +275,8 @@ class Renderer
 		body
 
 			adjust = (angle + 315) % 360
-			if (adjust // 45) % 2, return adjust % 45
-			else, return 45 - adjust % 45
+	
+			return if((adjust // 45) % 2, adjust % 45, 45 - adjust % 45)
 		
 
 	def __normalizeRFT(angle as float) as Pair<of RotateFlipType> is shared
@@ -292,16 +307,25 @@ class Renderer
 		Ranges should follow a pattern of (a, b) where a <= b
 		"""
 
-		for range in rangeSet
+		require
 
-			# for all relevant purposes to how it's used,
-			# equivalent to range.a <= num <= range.b, but faster
-			if (num%range.a<>num or num==range.a) and (num%range.b==num or num==range.b)
-
-				return true
+			all for range in rangeSet get range.a <= range.b and not (range.a.isNaN or range.b.isNaN)
 
 
-		return false
+		# essentially equivalent to:
+		# any for range in rangeSet get range.a <= num <= range.b
+		body
+
+			for range in rangeSet
+	
+				# for all relevant purposes to how it's used,
+				# equivalent to range.a <= num <= range.b, but faster
+				if (num%range.a<>num or num==range.a) and (num%range.b==num or num==range.b)
+	
+					return true
+	
+	
+			return false
 
 
 	def __pixelIndex(pixelIndexType as IndexType, pixel as Pixel, color as Pixel? = nil) as float is shared
@@ -317,52 +341,80 @@ class Renderer
 		ensure
 
 			not result.isNaN
+			result >= 0
 
 
 		body
 
 			alpha, red, green, blue = pixel.a, pixel.r, pixel.g, pixel.b
+
 			rDif, gDif, bDif = red/255f, green/255f, blue/255f
+
 			cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
 			cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
+
 			delta = cMax - cMin
 			kVal = 1 - cMax
+
 			branch pixelIndexType
+
 				on IndexType.LUMINANCE
-					# Luminance is between 0-255, dark => light
+					# Luminance is between 0-255, dark -> light
 					ret = 0.299*red + 0.587*green + 0.114*blue
+
 				on IndexType.RED
+					# Red is between 0-255
 					ret = red to float
+
 				on IndexType.GREEN
+					# Green is between 0-255
 					ret = green to float
+
 				on IndexType.BLUE
+					# Blue is between 0-255
 					ret = blue to float
+
 				on IndexType.ALPHA
+					# Alpha is between 0-255, transparent -> opaque
 					ret = alpha to float
+
 				on IndexType.COLORDIFF
+					# Diff is between 0-255
 					ret = __colorDiff(pixel, color to !)
+
 				on IndexType.HUE
+					# Hue is between 0-1
 					if delta == 0, ret = 0f
 					else if cMax == rDif, ret = 60* (((gDif - bDif) / delta) % 6)
 					else if cMax == gDif, ret = 60* (((bDif - rDif) / delta) + 2)
 					else if cMax == bDif, ret = 60* (((rDif - gDif) / delta) + 6)
+
 				on IndexType.SATURATION
+					# Saturation is between 0-1, bland -> vibrant
 					ret = delta / cMax
+
 				on IndexType.CYAN
 					# Cyan is between 0-1
 					ret = (1 - rDif - kVal) / (1 - kVal)
+
 				on IndexType.MAGENTA
 					# Magenta is between 0-1
 					ret = (1 - gDif - kVal) / (1 - kVal)
+
 				on IndexType.YELLOW
 					# Yellow is bewteen 0-1
 					ret = (1 - bDif - kVal) / (1 - kVal)
+
 				on IndexType.KVALUE
-					# K-Value is between 0-1, light => dark
+					# K-Value is between 0-1, light -> dark
 					ret = kVal
+
 				on IndexType.VALUE
+					# Value is between 0-1
 					ret = cMax
 
+
+			# all NaN's should be 0
 			return if(ret.isNaN, 0f, ret)
 
 

@@ -2,17 +2,20 @@
 use System.Drawing
 use System.ComponentModel
 
-class Window inherits Form is partial
+class Window inherits Form
 	"""
 	UI
 	"""
 	#TODO add better description
 
 	cue init
+
 		base.init
 
+		.text = 'SH(x,y)FT'
+
 		#set minimum size to something sensible
-		.minimumSize=Size(800,600)
+		.minimumSize = Size(800,600)
 
 		# hover-over help text for the window
 		uxHelp = ToolTip()
@@ -71,23 +74,38 @@ class Window inherits Form is partial
 		#make sure the image is always fully visible in the preview pane
 		#	and not scaled so that it blurs
 		listen uxPreview.resize, do(sender, e as EventArgs?)
+
 			#if the image is smaller than the picture box
 			if uxPreview.width > uxPreview.image.width and uxPreview.height > uxPreview.image.height
+
 				#put the image in the center
 				uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
+
+
 			else
+
 				#scale the image to the size of the picture box while retaining aspect ratio
 				uxPreview.sizeMode = PictureBoxSizeMode.Zoom
+
 
 		#update the preview pane when a refresh is needed
 		#TODO use delegate for the repeated operation in this and the above handler
 		listen Program.PreviewRefresh, do(img as Bitmap)
+
 			uxPreview.image = img
+
 			if uxPreview.width > uxPreview.image.width and uxPreview.height > uxPreview.image.height
+
 				uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
+
+
 			else
+
 				uxPreview.sizeMode = PictureBoxSizeMode.Zoom
+
+
 			uxPreview.refresh
+
 
 		#file open button
 		uxOpenButton = Button(
@@ -98,14 +116,23 @@ class Window inherits Form is partial
 
 		#handle file opening
 		listen uxOpenButton.click, do(sender, e as EventArgs?)
+
 			openDialog = OpenFileDialog(defaultExt='png')
 			response = openDialog.showDialog
+
 			if response == DialogResult.OK
+
 				file = openDialog.fileName
+
 				try
+
 					Program.sourceImage = Bitmap(file)
+
+
 				catch
+
 					MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
 
 		#help text for open button
 		uxHelp.setToolTip(uxOpenButton, "Open a new image file")
@@ -119,18 +146,28 @@ class Window inherits Form is partial
 
 		#handle file saving
 		listen uxSaveButton.click, do(sender, e as EventArgs?)
+
 			saveDialog = SaveFileDialog(
 				defaultExt='png',
 				addExtension=true,
 				filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap (*.bmp)|.bmp'
 				)
+
 			response = saveDialog.showDialog
+
 			if response == DialogResult.OK
+
 				file = saveDialog.fileName
+
 				try
+
 					Program.currentImage.save(file)
+
+
 				catch
+
 					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
 
 		#help text for save button
 		uxHelp.setToolTip(uxSaveButton, "Save the current render")
@@ -144,7 +181,9 @@ class Window inherits Form is partial
 
 		#handle undo
 		listen uxUndoButton.click, do(sender, e as EventArgs)
+
 			Program.undo
+
 
 		#help text for undo button
 		uxHelp.setToolTip(uxUndoButton, "Undo the previous render")
@@ -158,7 +197,9 @@ class Window inherits Form is partial
 
 		#handle redo
 		listen uxRedoButton.click, do(sender, e as EventArgs)
+
 			Program.redo
+
 
 		#help text for redo button
 		uxHelp.setToolTip(uxRedoButton, "Redo the last render")
@@ -236,19 +277,29 @@ class Window inherits Form is partial
 
 		#handle render / cancel operations
 		listen uxRenderOrCancelButton.click, do(sender, e as EventArgs?)
+
 			if uxRenderOrCancelButton.text == 'Cancel'
+
 				Program.renderThread.cancelAsync
+
 				uxRenderOrCancelButton.text = 'Render'
+
+
 			else
+
 				#TODO add error checking for argument collection
 				Program.renderThread.runWorkerAsync(@[
 					Program.currentImage to Object,
 					float.parse(raDegBox.text to!) to Object,
 					raIndexTypeSelector.selectedItem,
-					Pair<of float>(float.parse(raMinBox.text to!), float.parse(raMaxBox.text to!))
+					Pair<of float>( _
+						float.parse(raMinBox.text to!), _
+						float.parse(raMaxBox.text to!) _
+						)
 					])
 
 				uxRenderOrCancelButton.text = 'Cancel'
+
 
 		#progress bar for renders
 		uxRenderProgressBar = ProgressBar(
@@ -260,9 +311,12 @@ class Window inherits Form is partial
 
 		#handle progress bar updating
 		listen Program.renderThread.progressChanged, do(sender, e as ProgressChangedEventArgs)
+
 			uxRenderProgressBar.value = e.progressPercentage
+
 
 		#update progress bar and render button to default state when render finished
 		listen Program.renderThread.runWorkerCompleted, do(sender, e as RunWorkerCompletedEventArgs)
+
 			uxRenderOrCancelButton.text = 'Render'
 			uxRenderProgressBar.value = 0
