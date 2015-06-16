@@ -1,1 +1,1 @@
-cobra IndexType Program Renderer Window -d:0 -ert:1 -out:SHxyFT -turbo:1 -t:winexe
+cobra Pixel Program Renderer Window -d:0 -ert:1 -out:SHxyFT -turbo:1 -t:winexe
