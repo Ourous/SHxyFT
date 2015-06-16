@@ -65,7 +65,7 @@ class Program
 
 		def main has STAThread
 
-			listen __renderThread.doWork, ref Renderer.render
+			listen __renderThread.doWork, ref Renderer.renderOnBackgroundWorker
 
 			listen __renderThread.runWorkerCompleted, do(sender, e as RunWorkerCompletedEventArgs)
 
@@ -94,4 +94,4 @@ class Program
 
 			catch ex as Exception
 
-				print ex.message
+				print ex.message, ex.typeOf

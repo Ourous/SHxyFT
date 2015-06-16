@@ -226,23 +226,11 @@ class Window inherits Form
 
 		#options for the index type selector
 		raIndexTypeSelector.items.addRange(@[
-			IndexType.ALPHA to Object,
-			IndexType.BLUE to Object,
-			IndexType.CYAN to Object,
-			IndexType.GREEN to Object,
-			IndexType.KVALUE to Object,
-			IndexType.LUMINANCE to Object,
-			IndexType.MAGENTA to Object,
-			IndexType.RED to Object,
-			IndexType.SATURATION to Object,
-			IndexType.YELLOW to Object,
-			IndexType.HUE to Object,
-			IndexType.COLORDIFF to Object,
-			IndexType.VALUE to Object
+			'Alpha', 'Red', 'Green', 'Blue', 'Cyan', 'Magenta', 'Yellow', 'K-Value', 'Hue', 'Saturation', 'Value', 'Color Diff', 'Luminance'
 			])
 
 		#start the index selector with the most 
-		raIndexTypeSelector.selectedItem = IndexType.LUMINANCE
+		raIndexTypeSelector.selectedItem = 'Luminance'
 
 		#min value box for sort
 		raMinBox = TextBox(
@@ -275,32 +263,6 @@ class Window inherits Form
 		#TODO change help text when button displays cancel option
 		uxHelp.setToolTip(uxRenderOrCancelButton, "Render the current image")
 
-		#handle render / cancel operations
-		listen uxRenderOrCancelButton.click, do(sender, e as EventArgs?)
-
-			if uxRenderOrCancelButton.text == 'Cancel'
-
-				Program.renderThread.cancelAsync
-
-				uxRenderOrCancelButton.text = 'Render'
-
-
-			else
-
-				#TODO add error checking for argument collection
-				Program.renderThread.runWorkerAsync(@[
-					Program.currentImage to Object,
-					float.parse(raDegBox.text to!) to Object,
-					raIndexTypeSelector.selectedItem,
-					Pair<of float>( _
-						float.parse(raMinBox.text to!), _
-						float.parse(raMaxBox.text to!) _
-						)
-					])
-
-				uxRenderOrCancelButton.text = 'Cancel'
-
-
 		#progress bar for renders
 		uxRenderProgressBar = ProgressBar(
 			parent=uxLayoutLv2,
@@ -320,3 +282,54 @@ class Window inherits Form
 
 			uxRenderOrCancelButton.text = 'Render'
 			uxRenderProgressBar.value = 0
+
+
+		#TODO refine color comparison input handling
+		raCompColorBox = TextBox(
+			parent=uxLayoutLv2,
+			text='TODO',
+			dock=DockStyle.Fill,
+			enabled=false
+			)
+
+		#colordiff box help text
+		uxHelp.setToolTip(raCompColorBox, "Color to be used for COLORDIFF sorting (in Hex ARGB)")
+
+		#handle render / cancel operations
+		listen uxRenderOrCancelButton.click, do(sender, e as EventArgs?)
+
+			if uxRenderOrCancelButton.text == 'Cancel'
+
+				Program.renderThread.cancelAsync
+
+				uxRenderOrCancelButton.text = 'Render'
+
+
+			else
+				branch raIndexTypeSelector.selectedItem to String
+					on 'Alpha', indexer = Pixel.Indexers.alpha
+					on 'Red', indexer = Pixel.Indexers.red
+					on 'Green', indexer = Pixel.Indexers.green
+					on 'Blue', indexer = Pixel.Indexers.blue
+					on 'Cyan', indexer = Pixel.Indexers.cyan
+					on 'Magenta', indexer = Pixel.Indexers.magenta
+					on 'Yellow', indexer = Pixel.Indexers.yellow
+					on 'K-Value', indexer = Pixel.Indexers.kValue
+					on 'Hue', indexer = Pixel.Indexers.hue
+					on 'Saturation', indexer = Pixel.Indexers.saturation
+					on 'Value', indexer = Pixel.Indexers.value
+					on 'Color Diff', indexer = Pixel.Indexers.colorDiff(Pixel(0, 0, 0, 0))
+					on 'Luminance', indexer = Pixel.Indexers.luminance
+					
+				#TODO add error checking for argument collection
+				Program.renderThread.runWorkerAsync(@[
+					Program.currentImage to Object,
+					float.parse(raDegBox.text to!) to Object,
+					indexer to Object,
+					@[Pair<of float>( _
+						float.parse(raMinBox.text to!), _
+						float.parse(raMaxBox.text to!) _
+						)
+					]])
+
+				uxRenderOrCancelButton.text = 'Cancel'

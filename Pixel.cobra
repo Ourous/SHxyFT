@@ -1,0 +1,108 @@
+﻿struct Pixel
+	"""
+	Represents a 32-bit ARGB pixel
+	"""
+
+	get a from __a as uint8
+	get r from __r as uint8
+	get g from __g as uint8
+	get b from __b as uint8
+
+	cue init(a as uint8, r as uint8, g as uint8, b as uint8)
+		"""
+		Alpha, Red, Green, Blue
+		"""
+
+		__a, __r, __g, __b = a, r, g, b
+
+
+	cue init(r as uint8, g as uint8, b as uint8)
+		"""
+		(Alpha == 255 is implied), Red, Green, Blue
+		"""
+
+		this.init(255, r, g, b)
+
+	sig PixelIndexer(pixel as Pixel) as float
+
+	class Indexers
+		shared
+			def red as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					return pixel.r to float
+	
+			def green as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					return pixel.g to float
+	
+			def blue as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					return pixel.b to float
+	
+			def cyan as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
+					ret = (1 - rDif - kVal) / (1 - kVal)
+					return if(ret.isNaN, 0f, ret)
+	
+			def magenta as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
+					ret = (1 - gDif - kVal) / (1 - kVal)
+					return if(ret.isNaN, 0f, ret)
+	
+			def yellow as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
+					ret = (1 - bDif - kVal) / (1 - kVal)
+					return if(ret.isNaN, 0f, ret)
+	
+			def kValue as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
+					return kVal
+	
+			def alpha as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					return pixel.a to float
+	
+			def luminance as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					return 0.299*pixel.r + 0.587*pixel.g + 0.114*pixel.b
+	
+			def saturation as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
+					cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
+					delta = cMax - cMin
+					ret = delta / cMax
+					return if(ret.isNaN, 0f, ret)
+	
+			def hue as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
+					cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
+					delta = cMax - cMin
+					if delta == 0, return 0f
+					else if cMax == rDif, return 60* (((gDif - bDif) / delta) % 6)
+					else if cMax == gDif, return 60* (((bDif - rDif) / delta) + 2)
+					else if cMax == bDif, return 60* (((rDif - gDif) / delta) + 6)
+					else, throw Exception()
+	
+			def value as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
+					return cMax
+	
+			def colorDiff(referenceColor as Pixel) as PixelIndexer
+				return PixelIndexer(do(pixel as Pixel))
+					d = ((pixel.a - referenceColor.a)**2 + (pixel.r - referenceColor.r)**2 + (pixel.g - referenceColor.g)**2 + (pixel.b - referenceColor.b)**2)**0.5
+					ret = 255 - d / 2f
+					return if(ret.isNaN, 0f, ret)

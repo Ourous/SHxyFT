@@ -2,10 +2,10 @@
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
   <MonoDevelop.Ide.Workbench ActiveDocument="Renderer.cobra">
     <Files>
-      <File FileName="IndexType.cobra" Line="2" Column="5" />
-      <File FileName="Program.cobra" Line="7" Column="5" />
-      <File FileName="Renderer.cobra" Line="26" Column="4" />
-      <File FileName="Window.cobra" Line="13" Column="12" />
+      <File FileName="Renderer.cobra" Line="501" Column="16" />
+      <File FileName="Window.cobra" Line="1" Column="1" />
+      <File FileName="Program.cobra" Line="1" Column="1" />
+      <File FileName="Pixel.cobra" Line="1" Column="1" />
     </Files>
   </MonoDevelop.Ide.Workbench>
   <MonoDevelop.Ide.DebuggingService.Breakpoints>

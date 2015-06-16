@@ -14,42 +14,215 @@ class Renderer
 	#TODO add better description
 	#TODO create render method that is invokeable without using a backgroundworker
 
-	/#def renderOnBackgroundWorker as BackgroundWorker is shared
-		worker = BackgroundWorker()
-		listen worker.doWork, do(sender, e as DoWorkEventArgs)
-			interrupt = Func<of bool>(do)
-				if sender.cancellationPending
-					e.cancel = true
-					return true
-				return false
-			args = #/
 
-	def render(sender, e as DoWorkEventArgs) is shared
+	def render(source as Bitmap, angle as float, indexer as Pixel.PixelIndexer, sortRanges as Pair<of float>*) as Bitmap is shared
 		"""
-		Outer render funciton
+		Basic pixelsort render call
 		"""
 
-		__render(sender, e)
+		ret = Bitmap(source)
+		.renderInPlace(ret, angle, indexer, sortRanges)
+		return ret
 
 
-	def __render(sender, e as DoWorkEventArgs) is shared
+	def renderInPlace(source as Bitmap, angle as float, indexer as Pixel.PixelIndexer, sortRanges as Pair<of float>*) is shared
 		"""
-		Inner render function
+		In-place version of the .render call
 		"""
+
+		# adjust args to be useful
+		initialRFT, revertRFT = __normalizeRFT(angle)
+		inclination = __normalizeAngle(angle)
+
+		# orient the image to the correct position for all sorting to take place between 0 <= m <= 1 for y = mx + b
+		source.rotateFlip(initialRFT)
+
+		# extract byte array from image
+		rectangle = Rectangle(0, 0, source.width, source.height)
+		data = source.lockBits(rectangle, ImageLockMode.ReadWrite, PixelFormat.Format32bppArgb) to !
+		pointer = data.scan0
+		bytes = uint8[](data.stride * source.height)
+		Marshal.copy(pointer, bytes, 0, data.stride * source.height)
+
+		xs = -1
+		start = -1
+		first = -1
+		progressCount = 0
+		indexes = float[](source.width)
+		pixels = Pixel[](source.width)
+		slice = int[](source.width)
+
+		gradient = (inclination * Math.pi / 180).tan
+		offsetMin = (-gradient * source.width).ceiling to int
+		offsetMax = source.height
+
+		# check if the gradient actually results in any change in the slices
+		# compared to zero-gradient, based on the size of the plane being sliced
+		if offsetMin, for offset in offsetMin : offsetMax
+
+			rangeMin = ((0 - offset - 1) / gradient).floor to int +1
+			if rangeMin < 0, rangeMin = 0
+
+			rangeMax = ((source.height - offset - 1) / gradient).floor to int +1
+			if rangeMax > source.width, rangeMax = source.width
+
+
+			for x in rangeMin : rangeMax
+
+				progressCount += 1
+
+				y = source.height - ((gradient * x).ceiling to int + offset + 1)
+				pos = (y * data.stride) + (x * 4)
+
+				pixel = Pixel(bytes[pos+3], bytes[pos+2], bytes[pos+1], bytes[pos])
+
+				index = indexer.invoke(pixel)
+
+				# check if the current pixel is inside a region to be sorted
+				if __isInRangeSet(index, sortRanges)
+
+					if xs == -1, xs = x
+					indexes[x], pixels[x], slice[x] = index, pixel, pos
+
+				# the current pixel is not inside a sortable region,
+				# so check if this is the end of a region to be sorted
+				else if xs <> -1
+
+					Array.sort(indexes, pixels, xs, x-xs)
+					for n in xs:x
+
+						# get byte array index from slice
+						ns = slice[n]
+						# replace Alpha
+						bytes[ns+3] = pixels[n].a
+						# replace Red
+						bytes[ns+2] = pixels[n].r
+						# replace Green
+						bytes[ns+1] = pixels[n].g
+						# replace Blue
+						bytes[ns] = pixels[n].b
+
+
+					xs = -1
+
+
+			# check if the end of the slice coincides with the end of a
+			# region to be sorted
+			if xs <> -1
+
+				Array.sort(indexes, pixels, xs, x-xs)
+				for n in xs:x-1
+
+					# get byte array index from slice
+					ns = slice[n]
+					# replace Alpha
+					bytes[ns+3] = pixels[n].a
+					# replace Red
+					bytes[ns+2] = pixels[n].r
+					# replace Green
+					bytes[ns+1] = pixels[n].g
+					# replace Blue
+					bytes[ns] = pixels[n].b
+
+
+				xs = -1
+
+
+		# the minimum offset is insignificant for the region size, and so
+		# the slicing process can be ignored. use a standard x / y loop to speed things up
+		else, for y in source.height
+
+			for x in source.width
+
+				progressCount += 1
+
+				pos = (y * data.stride) + (x * 4)
+
+				pixel = Pixel(bytes[pos + 3], bytes[pos + 2], bytes[pos + 1], bytes[pos])
+
+				index = indexer.invoke(pixel)
+
+				# check if the current pixel is inside a region to be sorted
+				if __isInRangeSet(index, sortRanges)
+
+					if start == -1, start, first = pos, x
+					indexes[x], pixels[x] = index, pixel
+
+
+				# the current pixel is not inside a sortable region,
+				# so check if this is the end of a region to be sorted
+				else if start <> -1
+
+					Array.sort(indexes, pixels, first, x-first)
+					for n in first:x
+
+						# replace Alpha
+						bytes[start + 3] = pixels[n].a
+						# replace Red
+						bytes[start + 2] = pixels[n].r
+						# replace Green
+						bytes[start + 1] = pixels[n].g
+						# replace Blue
+						bytes[start] = pixels[n].b
+
+						start += 4
+
+
+					start = -1
+
+
+			#TODO check cancel
+			if start <> -1
+
+				Array.sort(indexes, pixels, first, x-first)
+				for n in first:x-1
+
+					# replace Alpha
+					bytes[start + 3] = pixels[n].a
+					# replace Red
+					bytes[start + 2] = pixels[n].r
+					# replace Green
+					bytes[start + 1] = pixels[n].g
+					# replace Blue
+					bytes[start] = pixels[n].b
+
+					start += 4
+
+
+				start = -1
+		
+
+		# replace the byte array with the edited one
+		Marshal.copy(bytes, 0, pointer, data.stride * source.height)
+		source.unlockBits(data)
+
+		# re-orient the image to its original orientation
+		source.rotateFlip(revertRFT)
+
+
+	def renderOnBackgroundWorker(sender, e as DoWorkEventArgs) is shared
+		"""
+		BackgroundWorker-friendly version of the .render call
+		Argments follow the same format as the standard .render, but are packed into the argument
+		 property of the DoWorkEventArgs
+		Requires that the backgroundWorker will report progress
+		Render can optionally be cancelleds
+		"""
+
+		require sender.reportsProgress
 
 		worker = sender to BackgroundWorker
 		args = e.argument to Object[]
 
 		# unpack args
-		source = args[0] to Bitmap
-		initialAngle = args[1] to float
-		indexType = args[2] to IndexType
-		indexRange = args[3] to Pair<of float>
+		source = Bitmap(args[0] to Bitmap)
+		angle = args[1] to float
+		indexer = args[2] to Pixel.PixelIndexer
+		sortRanges = args[3] to Pair<of float>*
 
 		# adjust args to be useful
-		rangeSet = @[indexRange]
-		initialRFT, revertRFT = __normalizeRFT(initialAngle)
-		inclination = __normalizeAngle(initialAngle)
+		initialRFT, revertRFT = __normalizeRFT(angle)
+		inclination = __normalizeAngle(angle)
 
 		# orient the image to the correct position for all sorting to take place between 0 <= m <= 1 for y = mx + b
 		source.rotateFlip(initialRFT)
@@ -99,10 +272,10 @@ class Renderer
 
 				pixel = Pixel(bytes[pos+3], bytes[pos+2], bytes[pos+1], bytes[pos])
 
-				index = __pixelIndex(indexType, pixel)
+				index = indexer.invoke(pixel)
 
 				# check if the current pixel is inside a region to be sorted
-				if __isInRangeSet(index, rangeSet)
+				if __isInRangeSet(index, sortRanges)
 
 					if xs == -1, xs = x
 					indexes[x], pixels[x], slice[x] = index, pixel, pos
@@ -173,10 +346,10 @@ class Renderer
 
 				pixel = Pixel(bytes[pos + 3], bytes[pos + 2], bytes[pos + 1], bytes[pos])
 
-				index = __pixelIndex(indexType, pixel)
+				index = indexer.invoke(pixel)
 
 				# check if the current pixel is inside a region to be sorted
-				if __isInRangeSet(index, rangeSet)
+				if __isInRangeSet(index, sortRanges)
 
 					if start == -1, start, first = pos, x
 					indexes[x], pixels[x] = index, pixel
@@ -304,7 +477,7 @@ class Renderer
 	def __isInRangeSet(num as float, rangeSet as Pair<of float>*) as bool is shared
 		"""
 		Checks if a number is within a set of ranges, including end points of the ranges.
-		Ranges should follow a pattern of (a, b) where a <= b
+		Ranges should follow a pattern of (a, b) where a <= b, a /= NaN, b /= NaN
 		"""
 
 		require
@@ -326,136 +499,3 @@ class Renderer
 	
 	
 			return false
-
-
-	def __pixelIndex(pixelIndexType as IndexType, pixel as Pixel, color as Pixel? = nil) as float is shared
-		"""
-		Generate a specific index of a pixel
-		"""
-
-		require
-
-			if(pixelIndexType == IndexType.COLORDIFF, color <> nil, true)
-
-
-		ensure
-
-			not result.isNaN
-			result >= 0
-
-
-		body
-
-			alpha, red, green, blue = pixel.a, pixel.r, pixel.g, pixel.b
-
-			rDif, gDif, bDif = red/255f, green/255f, blue/255f
-
-			cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
-			cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
-
-			delta = cMax - cMin
-			kVal = 1 - cMax
-
-			branch pixelIndexType
-
-				on IndexType.LUMINANCE
-					# Luminance is between 0-255, dark -> light
-					ret = 0.299*red + 0.587*green + 0.114*blue
-
-				on IndexType.RED
-					# Red is between 0-255
-					ret = red to float
-
-				on IndexType.GREEN
-					# Green is between 0-255
-					ret = green to float
-
-				on IndexType.BLUE
-					# Blue is between 0-255
-					ret = blue to float
-
-				on IndexType.ALPHA
-					# Alpha is between 0-255, transparent -> opaque
-					ret = alpha to float
-
-				on IndexType.COLORDIFF
-					# Diff is between 0-255
-					ret = __colorDiff(pixel, color to !)
-
-				on IndexType.HUE
-					# Hue is between 0-1
-					if delta == 0, ret = 0f
-					else if cMax == rDif, ret = 60* (((gDif - bDif) / delta) % 6)
-					else if cMax == gDif, ret = 60* (((bDif - rDif) / delta) + 2)
-					else if cMax == bDif, ret = 60* (((rDif - gDif) / delta) + 6)
-
-				on IndexType.SATURATION
-					# Saturation is between 0-1, bland -> vibrant
-					ret = delta / cMax
-
-				on IndexType.CYAN
-					# Cyan is between 0-1
-					ret = (1 - rDif - kVal) / (1 - kVal)
-
-				on IndexType.MAGENTA
-					# Magenta is between 0-1
-					ret = (1 - gDif - kVal) / (1 - kVal)
-
-				on IndexType.YELLOW
-					# Yellow is bewteen 0-1
-					ret = (1 - bDif - kVal) / (1 - kVal)
-
-				on IndexType.KVALUE
-					# K-Value is between 0-1, light -> dark
-					ret = kVal
-
-				on IndexType.VALUE
-					# Value is between 0-1
-					ret = cMax
-
-
-			# all NaN's should be 0
-			return if(ret.isNaN, 0f, ret)
-
-
-	def __colorDiff(pixel1 as Pixel, pixel2 as Pixel) as float is shared
-		"""
-		Color difference between two pixels
-		"""
-
-		ensure
-
-			0f <= result <= 255f
-
-
-		body
-
-			d = ((pixel1.r-pixel2.r)**2+(pixel1.g-pixel2.g)**2+(pixel1.b-pixel2.b)**2)**0.5
-
-			return 255- d / 3f.sqrt
-
-
-	struct Pixel
-		"""
-		Represents a 32-bit ARGB pixel
-		"""
-
-		get a from __a as uint8
-		get r from __r as uint8
-		get g from __g as uint8
-		get b from __b as uint8
-
-		cue init(a as uint8, r as uint8, g as uint8, b as uint8)
-			"""
-			Alpha, Red, Green, Blue
-			"""
-
-			__a, __r, __g, __b = a, r, g, b
-
-
-		cue init(r as uint8, g as uint8, b as uint8)
-			"""
-			(Alpha == 255 is implied), Red, Green, Blue
-			"""
-
-			this.init(255, r, g, b)

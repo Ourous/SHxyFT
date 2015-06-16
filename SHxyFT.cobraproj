@@ -33,6 +33,6 @@
     <Compile Include="Program.cobra" />
     <Compile Include="Window.cobra" />
     <Compile Include="Renderer.cobra" />
-    <Compile Include="IndexType.cobra" />
+    <Compile Include="Pixel.cobra" />
   </ItemGroup>
 </Project>
