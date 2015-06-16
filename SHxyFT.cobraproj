@@ -7,7 +7,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>shXYft</RootNamespace>
     <UsePartialTypes>false</UsePartialTypes>
-    <AssemblyName>shXYft</AssemblyName>
+    <AssemblyName>SHxyFT</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
@@ -17,11 +17,23 @@
     <OutputPath>bin\Debug</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <ConsolePause>false</ConsolePause>
+    <Optimize>false</Optimize>
+    <Number>float</Number>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <OutputPath>bin\Release</OutputPath>
     <ErrorReport>prompt</ErrorReport>
     <ConsolePause>false</ConsolePause>
+    <PerformanceQualityOption>Custom</PerformanceQualityOption>
+    <Contracts>none</Contracts>
+    <IncludeAsserts>false</IncludeAsserts>
+    <IncludeNilChecks>false</IncludeNilChecks>
+    <IncludeTests>false</IncludeTests>
+    <IncludeTraces>false</IncludeTraces>
+    <EmbedRunTime>true</EmbedRunTime>
+    <Debug>off</Debug>
+    <Number>float</Number>
+    <CobraArgs>-t:winexe</CobraArgs>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Core" />

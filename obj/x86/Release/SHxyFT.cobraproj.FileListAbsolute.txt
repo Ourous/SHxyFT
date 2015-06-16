@@ -1,0 +1,2 @@
+C:\Users\Ourous\Documents\Projects\SHxyFT\SHxyFT\bin\Release\SHxyFT.exe
+C:\Users\Ourous\Documents\Projects\SHxyFT\SHxyFT\obj\x86\Release\SHxyFT.exe

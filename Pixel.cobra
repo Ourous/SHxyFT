@@ -44,27 +44,27 @@
 					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
 					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
 					ret = (1 - rDif - kVal) / (1 - kVal)
-					return if(ret.isNaN, 0f, ret)
+					return if(ret.isNaN, 0f, ret) * 255
 	
 			def magenta as PixelIndexer
 				return PixelIndexer(do(pixel as Pixel))
 					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
 					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
 					ret = (1 - gDif - kVal) / (1 - kVal)
-					return if(ret.isNaN, 0f, ret)
+					return if(ret.isNaN, 0f, ret) * 255
 	
 			def yellow as PixelIndexer
 				return PixelIndexer(do(pixel as Pixel))
 					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
 					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
 					ret = (1 - bDif - kVal) / (1 - kVal)
-					return if(ret.isNaN, 0f, ret)
+					return if(ret.isNaN, 0f, ret) * 255
 	
 			def kValue as PixelIndexer
 				return PixelIndexer(do(pixel as Pixel))
 					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
 					kVal = 1 - if(bDif <= rDif >= gDif, rDif, if(bDif <= gDif, gDif, bDif))
-					return kVal
+					return kVal * 255
 	
 			def alpha as PixelIndexer
 				return PixelIndexer(do(pixel as Pixel))
@@ -81,7 +81,7 @@
 					cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
 					delta = cMax - cMin
 					ret = delta / cMax
-					return if(ret.isNaN, 0f, ret)
+					return if(ret.isNaN, 0f, ret) * 255
 	
 			def hue as PixelIndexer
 				return PixelIndexer(do(pixel as Pixel))
@@ -90,19 +90,19 @@
 					cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
 					delta = cMax - cMin
 					if delta == 0, return 0f
-					else if cMax == rDif, return 60* (((gDif - bDif) / delta) % 6)
-					else if cMax == gDif, return 60* (((bDif - rDif) / delta) + 2)
-					else if cMax == bDif, return 60* (((rDif - gDif) / delta) + 6)
+					else if cMax == rDif, return 60* (((gDif - bDif) / delta) % 6) * 100
+					else if cMax == gDif, return 60* (((bDif - rDif) / delta) + 2) * 100
+					else if cMax == bDif, return 60* (((rDif - gDif) / delta) + 6) * 100
 					else, throw Exception()
 	
 			def value as PixelIndexer
 				return PixelIndexer(do(pixel as Pixel))
 					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
 					cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
-					return cMax
+					return cMax * 255
 	
 			def colorDiff(referenceColor as Pixel) as PixelIndexer
 				return PixelIndexer(do(pixel as Pixel))
 					d = ((pixel.a - referenceColor.a)**2 + (pixel.r - referenceColor.r)**2 + (pixel.g - referenceColor.g)**2 + (pixel.b - referenceColor.b)**2)**0.5
 					ret = 255 - d / 2f
-					return if(ret.isNaN, 0f, ret)
+					return if(ret.isNaN, 0f, ret) * 255
