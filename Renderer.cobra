@@ -209,8 +209,6 @@ class Renderer
 		Render can optionally be cancelleds
 		"""
 
-		require sender.reportsProgress
-
 		worker = sender to BackgroundWorker
 		args = e.argument to Object[]
 

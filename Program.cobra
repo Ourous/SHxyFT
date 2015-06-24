@@ -58,7 +58,7 @@ class Program
 
 			if __historyIndex < __history.count-1
 
-				__historyIndex += 1
+				__historyIndex += 15
 
 				raise .PreviewRefresh, .currentImage
 
@@ -76,7 +76,7 @@ class Program
 
 				catch ex as Exception
 
-					print ex.message
+					throw ex
 
 
 				success
@@ -94,4 +94,4 @@ class Program
 
 			catch ex as Exception
 
-				print ex.message, ex.typeOf
+				throw ex

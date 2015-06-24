@@ -1,0 +1,51 @@
+﻿use System.Windows.Forms
+
+class Window is partial
+
+	def __verifyColorDiffBox(sender, e as EventArgs)
+		if sender inherits TextBox
+			try
+				if sender.text == nil or sender.text == ''
+					throw ArgumentNullException()
+				__verifiedColorDiffBoxValues[sender.tag to int] = uint8.parse(sender.text to !)
+			catch FormatException
+				sender.text = __verifiedColorDiffBoxValues[sender.tag to int].toString
+			catch OverflowException
+				sender.text, __verifiedColorDiffBoxValues[sender.tag to int] = '255', 255u8
+			catch ArgumentNullException
+				sender.text,  __verifiedColorDiffBoxValues[sender.tag to int] = '0', 0u8
+
+	def __verifyRangeMin(sender, e as EventArgs)
+
+		constrainToBounds = Func<of float, float, float>(do(max as float, min as float))
+			num as float
+			if sender inherits TextBox
+				if sender.text == nil or sender.text == ''
+					return min
+				else
+					num = try float.parse(sender.text to !) catch FormatException get __verifiedRangeMin
+					if num < min, return min
+					else if num > max, return max
+			return num
+
+		res = __verifiedRangeMin
+
+		branch __verifiedIndexType
+
+			on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', res = constrainToBounds(0, 255)
+
+			#TODO implement bounds for other index types
+
+		sender.text = ( __verifiedRangeMin = res ).toString
+					
+	def __verifyRangeMax(sender, e as EventArgs)
+		#TODO events for when min raised above max and viceversa ?
+		pass
+
+	def __verifyIndexType(sender, e as EventArgs)
+		# index type is verified intrinsically
+		pass
+
+	def __verifyDegValue(sender, e as EventArgs)
+		#TODO
+		pass

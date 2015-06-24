@@ -2,11 +2,20 @@
 use System.Drawing
 use System.ComponentModel
 
-class Window inherits Form
+class Window inherits Form is partial
 	"""
 	UI
 	"""
 	#TODO add better description
+
+	var __verifiedColorDiffBoxValues as uint8[] = @[255u8, 0u8, 0u8, 0u8]
+
+	var __verifiedIndexType = 'Luminance'
+
+	var __verifiedRangeMin = 0f
+	var __verifiedRangeMax = 255f
+
+	var __verifiedDegValue = 0f
 
 	cue init
 
@@ -232,6 +241,68 @@ class Window inherits Form
 		#start the index selector with the most 
 		raIndexTypeSelector.selectedItem = 'Luminance'
 
+		uxLayoutColorDiffARGBSelector = TableLayoutPanel(
+			parent=uxLayoutLv2,
+			columnCount=4,
+			rowCount=1,
+			dock=DockStyle.Fill,
+			enabled=false,
+			padding=Padding(0),
+			autoSize=true
+			)
+
+		uxLayoutColorDiffARGBSelector.columnStyles.addRange(@[
+			ColumnStyle(SizeType.Percent, 1),
+			ColumnStyle(SizeType.Percent, 1),
+			ColumnStyle(SizeType.Percent, 1),
+			ColumnStyle(SizeType.Percent, 1)
+			])
+
+		uxLayoutColorDiffARGBSelector.rowStyles.addRange(@[
+			RowStyle(SizeType.AutoSize)
+			])
+
+		uxLayoutLv2.setColumnSpan(uxLayoutColorDiffARGBSelector, 2)
+
+		listen raIndexTypeSelector.selectedValueChanged, do(sender, e as EventArgs)
+			uxLayoutColorDiffARGBSelector.enabled = raIndexTypeSelector.selectedItem to String == 'Color Diff'
+
+		raColorDiffAlpha = TextBox(
+			parent=uxLayoutColorDiffARGBSelector,
+			tag=0,
+			dock=DockStyle.Fill,
+			text='255'
+			)
+
+		listen raColorDiffAlpha.textChanged, ref __verifyColorDiffBox
+
+		raColorDiffRed = TextBox(
+			parent=uxLayoutColorDiffARGBSelector,
+			tag=1,
+			dock=DockStyle.Fill,
+			text='0'
+			)
+
+		listen raColorDiffRed.textChanged, ref __verifyColorDiffBox
+
+		raColorDiffGreen = TextBox(
+			parent=uxLayoutColorDiffARGBSelector,
+			tag=2,
+			dock=DockStyle.Fill,
+			text='0'
+			)
+
+		listen raColorDiffGreen.textChanged, ref __verifyColorDiffBox
+
+		raColorDiffBlue = TextBox(
+			parent=uxLayoutColorDiffARGBSelector,
+			tag=3,
+			dock=DockStyle.Fill,
+			text='0'
+			)
+
+		listen raColorDiffBlue.textChanged, ref __verifyColorDiffBox
+
 		#min value box for sort
 		raMinBox = TextBox(
 			parent=uxLayoutLv2,
@@ -284,17 +355,6 @@ class Window inherits Form
 			uxRenderProgressBar.value = 0
 
 
-		#TODO refine color comparison input handling
-		raCompColorBox = TextBox(
-			parent=uxLayoutLv2,
-			text='TODO',
-			dock=DockStyle.Fill,
-			enabled=false
-			)
-
-		#colordiff box help text
-		uxHelp.setToolTip(raCompColorBox, "Color to be used for COLORDIFF sorting (in Hex ARGB)")
-
 		#handle render / cancel operations
 		listen uxRenderOrCancelButton.click, do(sender, e as EventArgs?)
 
@@ -318,7 +378,14 @@ class Window inherits Form
 					on 'Hue', indexer = Pixel.Indexers.hue
 					on 'Saturation', indexer = Pixel.Indexers.saturation
 					on 'Value', indexer = Pixel.Indexers.value
-					on 'Color Diff', indexer = Pixel.Indexers.colorDiff(Pixel(0, 0, 0, 0))
+					on 'Color Diff', indexer = Pixel.Indexers.colorDiff(
+						Pixel(
+							__verifiedColorDiffBoxValues[0],
+							__verifiedColorDiffBoxValues[1],
+							__verifiedColorDiffBoxValues[2],
+							__verifiedColorDiffBoxValues[3]
+							)
+						)
 					on 'Luminance', indexer = Pixel.Indexers.luminance
 					
 				#TODO add error checking for argument collection
