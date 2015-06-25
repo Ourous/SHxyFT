@@ -4,48 +4,87 @@ class Window is partial
 
 	def __verifyColorDiffBox(sender, e as EventArgs)
 		if sender inherits TextBox
+			num as uint8
 			try
 				if sender.text == nil or sender.text == ''
-					throw ArgumentNullException()
-				__verifiedColorDiffBoxValues[sender.tag to int] = uint8.parse(sender.text to !)
+					num = 0u8
+				else
+					num = uint8.parse(sender.text to !)
 			catch FormatException
-				sender.text = __verifiedColorDiffBoxValues[sender.tag to int].toString
+				num = __verifiedColorDiffBoxValues[sender.tag to int]
 			catch OverflowException
-				sender.text, __verifiedColorDiffBoxValues[sender.tag to int] = '255', 255u8
-			catch ArgumentNullException
-				sender.text,  __verifiedColorDiffBoxValues[sender.tag to int] = '0', 0u8
+				num = 255u8
+			finally
+				if num <> __verifiedColorDiffBoxValues[sender.tag to int] or num.toString <> sender.text
+					sender.text = (__verifiedColorDiffBoxValues[sender.tag to int] = num).toString
+
 
 	def __verifyRangeMin(sender, e as EventArgs)
 
-		constrainToBounds = Func<of float, float, float>(do(max as float, min as float))
+		if sender inherits TextBox
+			min as float
+			max as float
 			num as float
-			if sender inherits TextBox
+
+			branch __verifiedIndexType
+				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min, max = 0, 255
+
+			try
 				if sender.text == nil or sender.text == ''
-					return min
+					num = 0f
 				else
-					num = try float.parse(sender.text to !) catch FormatException get __verifiedRangeMin
-					if num < min, return min
-					else if num > max, return max
-			return num
-
-		res = __verifiedRangeMin
-
-		branch __verifiedIndexType
-
-			on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', res = constrainToBounds(0, 255)
-
-			#TODO implement bounds for other index types
-
-		sender.text = ( __verifiedRangeMin = res ).toString
+					num = float.parse(sender.text to !)
+			catch FormatException
+				num = __verifiedRangeMin
+			success
+				if num < min
+					num = min
+				if num > max
+					num = max
+				if num > __verifiedRangeMax
+					num = __verifiedRangeMax
+			finally
+				if num <> __verifiedRangeMin or num.toString('0.0####') <> sender.text
+					sender.text = (__verifiedRangeMin = num).toString('0.0####')
 					
 	def __verifyRangeMax(sender, e as EventArgs)
-		#TODO events for when min raised above max and viceversa ?
-		pass
+		if sender inherits TextBox
+			min as float
+			max as float
+			num as float
+
+			branch __verifiedIndexType
+				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min, max = 0, 255
+
+			try
+				if sender.text == nil or sender.text == ''
+					num = 0f
+				else
+					num = float.parse(sender.text to !)
+			catch FormatException
+				num = __verifiedRangeMax
+			success
+				if num < min
+					num = min
+				if num > max
+					num = max
+				if num < __verifiedRangeMin
+					num = __verifiedRangeMin
+			finally
+				if num <> __verifiedRangeMax or num.toString('0.0####') <> sender.text
+					sender.text = (__verifiedRangeMax = num).toString('0.0####')
 
 	def __verifyIndexType(sender, e as EventArgs)
 		# index type is verified intrinsically
 		pass
 
 	def __verifyDegValue(sender, e as EventArgs)
-		#TODO
-		pass
+		num as float
+		if sender inherits TextBox
+			if sender.text == nil or sender.text == ''
+				num = 0f
+			else
+				num = try float.parse(sender.text to !) catch FormatException get __verifiedDegValue
+				if num < 0, num = 0
+				if num >= 360, num %= 360
+			sender.text = ( __verifiedDegValue = num ).toString

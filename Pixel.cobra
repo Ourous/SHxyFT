@@ -26,6 +26,9 @@
 
 	sig PixelIndexer(pixel as Pixel) as float
 
+	def toString as String is override
+		return '([__a],[__r],[__g],[__b])'
+
 	class Indexers
 
 		shared
@@ -134,5 +137,5 @@
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					ret = 255 - ((pixel.a - referenceColor.a)**2 + (pixel.r - referenceColor.r)**2 + (pixel.g - referenceColor.g)**2 + (pixel.b - referenceColor.b)**2)**0.5/ 2f
-					return if(ret.isNaN, 0f, ret) * 255
+					ret = 255 - ((pixel.a - referenceColor.a)**2 + (pixel.r - referenceColor.r)**2 + (pixel.g - referenceColor.g)**2 + (pixel.b - referenceColor.b)**2)**0.5 / 2f
+					return if(ret.isNaN, 0f, ret)

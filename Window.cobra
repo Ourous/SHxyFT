@@ -223,6 +223,8 @@ class Window inherits Form is partial
 		#help text for degrees box
 		uxHelp.setToolTip(raDegBox, "Sort angle (in degrees)")
 
+		listen raDegBox.textChanged, ref __verifyDegValue
+
 		#drop-down selector for the index type to be sorted
 		raIndexTypeSelector = ComboBox(
 			parent=uxLayoutLv2,
@@ -263,6 +265,8 @@ class Window inherits Form is partial
 			])
 
 		uxLayoutLv2.setColumnSpan(uxLayoutColorDiffARGBSelector, 2)
+
+		uxHelp.setToolTip(uxLayoutColorDiffARGBSelector, 'ARGB values for the comparison color used in ColorDiff indexing')
 
 		listen raIndexTypeSelector.selectedValueChanged, do(sender, e as EventArgs)
 			uxLayoutColorDiffARGBSelector.enabled = raIndexTypeSelector.selectedItem to String == 'Color Diff'
@@ -310,6 +314,9 @@ class Window inherits Form is partial
 			dock=DockStyle.Fill
 			)
 
+		#TODO
+		#listen raMinBox.textChanged, ref __verifyRangeMin
+
 		#help text for min value box
 		uxHelp.setToolTip(raMinBox, "Minimum value for indexes to be sorted")
 
@@ -319,6 +326,9 @@ class Window inherits Form is partial
 			text='255',
 			dock=DockStyle.Fill
 			)
+
+		#TODO
+		#listen raMaxBox.textChanged, ref __verifyRangeMax
 
 		#help text for max value box
 		uxHelp.setToolTip(raMaxBox, "Maximum value for indexes to be sorted")
