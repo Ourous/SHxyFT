@@ -1,4 +1,5 @@
-﻿struct Pixel
+﻿
+struct Pixel
 	"""
 	Represents a 32-bit ARGB pixel
 	"""
@@ -23,11 +24,19 @@
 
 		this.init(255, r, g, b)
 
+	cue enumerate as uint8*
+		return @[__a, __r, __g, __b]
 
-	sig PixelIndexer(pixel as Pixel) as float
+	sig PixelIndexer(pixel as Pixel) as number
 
 	def toString as String is override
 		return '([__a],[__r],[__g],[__b])'
+
+	def toTechString as String
+		return 'Pixel[.toString]'
+
+	def toPrintString as String
+		return .toString
 
 	class Indexers
 
@@ -37,21 +46,21 @@
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					return pixel.r to float
+					return pixel.r to number
 
 
 			def green as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					return pixel.g to float
+					return pixel.g to number
 
 
 			def blue as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					return pixel.b to float
+					return pixel.b to number
 
 
 			def cyan as PixelIndexer
@@ -59,7 +68,7 @@
 				return PixelIndexer(do(pixel as Pixel))
 
 					ret = 1 - pixel.r / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0f, ret) * 255
+					return if(ret.isNaN, 0n, ret)
 
 
 			def magenta as PixelIndexer
@@ -67,7 +76,7 @@
 				return PixelIndexer(do(pixel as Pixel))
 
 					ret = 1 - pixel.g / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0f, ret) * 255
+					return if(ret.isNaN, 0n, ret)
 
 
 			def yellow as PixelIndexer
@@ -75,15 +84,15 @@
 				return PixelIndexer(do(pixel as Pixel))
 
 					ret = 1 - pixel.b / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0f, ret) * 255
+					return if(ret.isNaN, 0n, ret)
 
 
 			def kValue as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					kVal = 1 - if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b)) / 255f
-					return kVal * 255
+					kVal = 1 - if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b)) / 255n
+					return kVal
 
 
 			def alpha as PixelIndexer
@@ -103,39 +112,35 @@
 			def saturation as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
-
-					/#rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
-					cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
-					cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
-					delta = cMax - cMin#/		
+					
 					ret = if(pixel.b >= pixel.r <= pixel.g, pixel.r, if(pixel.b >= pixel.g, pixel.g, pixel.b)) / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0f, ret) * 255
+					return if(ret.isNaN, 0n, ret)
 	
 			def hue as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					rDif, gDif, bDif = pixel.r/255f, pixel.g/255f, pixel.b/255f
+					rDif, gDif, bDif = pixel.r/255n, pixel.g/255n, pixel.b/255n
 					cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
 					cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
 					delta = cMax - cMin	
-					if delta == 0, return 0f
+					if delta == 0, return 0n
 					else if cMax == rDif, return 60* (((gDif - bDif) / delta) % 6)
 					else if cMax == gDif, return 60* (((bDif - rDif) / delta) + 2)
 					else if cMax == bDif, return 60* (((rDif - gDif) / delta) + 6)
-					else, throw Exception()
+					else, throw ArithmeticException('Tell Ourous that he messed up the hue indexer again: [pixel] @ HUE')
 
 
 			def value as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					return if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b)) / 255f * 255
+					return if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b)) / 255n
 
 
 			def colorDiff(referenceColor as Pixel) as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					ret = 255 - ((pixel.a - referenceColor.a)**2 + (pixel.r - referenceColor.r)**2 + (pixel.g - referenceColor.g)**2 + (pixel.b - referenceColor.b)**2)**0.5 / 2f
-					return if(ret.isNaN, 0f, ret)
+					ret = 255 - ((pixel.a - referenceColor.a)**2 + (pixel.r - referenceColor.r)**2 + (pixel.g - referenceColor.g)**2 + (pixel.b - referenceColor.b)**2)**0.5 / 2n
+					return if(ret.isNaN, 0n, ret)

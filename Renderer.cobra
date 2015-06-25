@@ -1,5 +1,4 @@
-﻿@number float
-
+﻿
 use System.ComponentModel
 use System.Drawing
 use System.Threading
@@ -15,7 +14,7 @@ class Renderer
 	#TODO create render method that is invokeable without using a backgroundworker
 
 
-	def render(source as Bitmap, angle as float, indexer as Pixel.PixelIndexer, sortRanges as Pair<of float>*) as Bitmap is shared
+	def render(source as Bitmap, angle as number, indexer as Pixel.PixelIndexer, sortRanges as Pair<of number>*) as Bitmap is shared
 		"""
 		Basic pixelsort render call
 		"""
@@ -25,7 +24,7 @@ class Renderer
 		return ret
 
 
-	def renderInPlace(source as Bitmap, angle as float, indexer as Pixel.PixelIndexer, sortRanges as Pair<of float>*) is shared
+	def renderInPlace(source as Bitmap, angle as number, indexer as Pixel.PixelIndexer, sortRanges as Pair<of number>*) is shared
 		"""
 		In-place version of the .render call
 		"""
@@ -48,7 +47,7 @@ class Renderer
 		start = -1
 		first = -1
 		progressCount = 0
-		indexes = float[](source.width)
+		indexes = number[](source.width)
 		pixels = Pixel[](source.width)
 		slice = int[](source.width)
 
@@ -214,9 +213,9 @@ class Renderer
 
 		# unpack args
 		source = Bitmap(args[0] to Bitmap)
-		angle = args[1] to float
+		angle = args[1] to number
 		indexer = args[2] to Pixel.PixelIndexer
-		sortRanges = args[3] to Pair<of float>*
+		sortRanges = args[3] to Pair<of number>*
 
 		# adjust args to be useful
 		initialRFT, revertRFT = __normalizeRFT(angle)
@@ -236,7 +235,7 @@ class Renderer
 		start = -1
 		first = -1
 		progressCount = 0
-		indexes = float[](source.width)
+		indexes = number[](source.width)
 		pixels = Pixel[](source.width)
 		slice = int[](source.width)
 
@@ -414,7 +413,7 @@ class Renderer
 		e.result = source
 
 
-	def __normalizeAngle(angle as float) as float is shared
+	def __normalizeAngle(angle as number) as number is shared
 		"""
 		Normalize an angle to 0-45 degrees of inclination above the x-axis, resulting in the same vector drawn on a plane following __normalizeRFT
 		"""
@@ -450,7 +449,7 @@ class Renderer
 			return if((adjust // 45) % 2, adjust % 45, 45 - adjust % 45)
 		
 
-	def __normalizeRFT(angle as float) as Pair<of RotateFlipType> is shared
+	def __normalizeRFT(angle as number) as Pair<of RotateFlipType> is shared
 		"""
 		Normalize a plane to fit a vector that has been adjusted by __normalizeAngle to the same relative orientation
 		"""
@@ -472,7 +471,7 @@ class Renderer
 			else,                       return Pair<of RotateFlipType>(RotateFlipType.RotateNoneFlipNone, RotateFlipType.RotateNoneFlipNone)
 			
 
-	def __isInRangeSet(num as float, rangeSet as Pair<of float>*) as bool is shared
+	def __isInRangeSet(num as number, rangeSet as Pair<of number>*) as bool is shared
 		"""
 		Checks if a number is within a set of ranges, including end points of the ranges.
 		Ranges should follow a pattern of (a, b) where a <= b, a /= NaN, b /= NaN

@@ -1,6 +1,7 @@
 ﻿use System.Windows.Forms
 use System.Drawing
 use System.ComponentModel
+use System.Text.RegularExpressions
 
 class Window inherits Form is partial
 	"""
@@ -8,14 +9,11 @@ class Window inherits Form is partial
 	"""
 	#TODO add better description
 
-	var __verifiedColorDiffBoxValues as uint8[] = @[255u8, 0u8, 0u8, 0u8]
-
+	var __verifiedComparisonColorValues = @[255u8, 0u8, 0u8, 0u8]
 	var __verifiedIndexType = 'Luminance'
-
-	var __verifiedRangeMin = 0f
-	var __verifiedRangeMax = 255f
-
-	var __verifiedDegValue = 0f
+	var __verifiedSortAngle = 0f
+	var __verifiedMinRange = 0f
+	var __verifiedMaxRange = 255f
 
 	cue init
 
@@ -82,39 +80,13 @@ class Window inherits Form is partial
 
 		#make sure the image is always fully visible in the preview pane
 		#	and not scaled so that it blurs
-		listen uxPreview.resize, do(sender, e as EventArgs?)
-
-			#if the image is smaller than the picture box
-			if uxPreview.width > uxPreview.image.width and uxPreview.height > uxPreview.image.height
-
-				#put the image in the center
-				uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
-
-
-			else
-
-				#scale the image to the size of the picture box while retaining aspect ratio
-				uxPreview.sizeMode = PictureBoxSizeMode.Zoom
-
+		listen uxPreview.resize, ref __previewResize
 
 		#update the preview pane when a refresh is needed
-		#TODO use delegate for the repeated operation in this and the above handler
 		listen Program.PreviewRefresh, do(img as Bitmap)
-
-			uxPreview.image = img
-
-			if uxPreview.width > uxPreview.image.width and uxPreview.height > uxPreview.image.height
-
-				uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
-
-
-			else
-
-				uxPreview.sizeMode = PictureBoxSizeMode.Zoom
-
-
+			uxPreview.image = Bitmap(img)
+			__previewResize(uxPreview, EventArgs())
 			uxPreview.refresh
-
 
 		#file open button
 		uxOpenButton = Button(
@@ -124,24 +96,7 @@ class Window inherits Form is partial
 			)
 
 		#handle file opening
-		listen uxOpenButton.click, do(sender, e as EventArgs?)
-
-			openDialog = OpenFileDialog(defaultExt='png')
-			response = openDialog.showDialog
-
-			if response == DialogResult.OK
-
-				file = openDialog.fileName
-
-				try
-
-					Program.sourceImage = Bitmap(file)
-
-
-				catch
-
-					MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
-
+		listen uxOpenButton.click, ref __openFile
 
 		#help text for open button
 		uxHelp.setToolTip(uxOpenButton, "Open a new image file")
@@ -154,29 +109,7 @@ class Window inherits Form is partial
 			)
 
 		#handle file saving
-		listen uxSaveButton.click, do(sender, e as EventArgs?)
-
-			saveDialog = SaveFileDialog(
-				defaultExt='png',
-				addExtension=true,
-				filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap (*.bmp)|.bmp'
-				)
-
-			response = saveDialog.showDialog
-
-			if response == DialogResult.OK
-
-				file = saveDialog.fileName
-
-				try
-
-					Program.currentImage.save(file)
-
-
-				catch
-
-					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
-
+		listen uxSaveButton.click, ref __saveFile
 
 		#help text for save button
 		uxHelp.setToolTip(uxSaveButton, "Save the current render")
@@ -242,6 +175,8 @@ class Window inherits Form is partial
 
 		#start the index selector with the most 
 		raIndexTypeSelector.selectedItem = 'Luminance'
+
+
 
 		uxLayoutColorDiffARGBSelector = TableLayoutPanel(
 			parent=uxLayoutLv2,
@@ -315,7 +250,7 @@ class Window inherits Form is partial
 			)
 
 		#TODO
-		#listen raMinBox.textChanged, ref __verifyRangeMin
+		listen raMinBox.textChanged, ref __verifyRangeMin
 
 		#help text for min value box
 		uxHelp.setToolTip(raMinBox, "Minimum value for indexes to be sorted")
@@ -328,7 +263,7 @@ class Window inherits Form is partial
 			)
 
 		#TODO
-		#listen raMaxBox.textChanged, ref __verifyRangeMax
+		listen raMaxBox.textChanged, ref __verifyRangeMax
 
 		#help text for max value box
 		uxHelp.setToolTip(raMaxBox, "Maximum value for indexes to be sorted")
@@ -376,7 +311,7 @@ class Window inherits Form is partial
 
 
 			else
-				branch raIndexTypeSelector.selectedItem to String
+				branch __verifiedIndexType
 					on 'Alpha', indexer = Pixel.Indexers.alpha
 					on 'Red', indexer = Pixel.Indexers.red
 					on 'Green', indexer = Pixel.Indexers.green
@@ -390,23 +325,40 @@ class Window inherits Form is partial
 					on 'Value', indexer = Pixel.Indexers.value
 					on 'Color Diff', indexer = Pixel.Indexers.colorDiff(
 						Pixel(
-							__verifiedColorDiffBoxValues[0],
-							__verifiedColorDiffBoxValues[1],
-							__verifiedColorDiffBoxValues[2],
-							__verifiedColorDiffBoxValues[3]
+							__verifiedComparisonColorValues[0],
+							__verifiedComparisonColorValues[1],
+							__verifiedComparisonColorValues[2],
+							__verifiedComparisonColorValues[3]
 							)
 						)
 					on 'Luminance', indexer = Pixel.Indexers.luminance
-					
+
 				#TODO add error checking for argument collection
 				Program.renderThread.runWorkerAsync(@[
 					Program.currentImage to Object,
-					float.parse(raDegBox.text to!) to Object,
+					__verifiedSortAngle to Object,
 					indexer to Object,
 					@[Pair<of float>( _
-						float.parse(raMinBox.text to!), _
-						float.parse(raMaxBox.text to!) _
+						__verifiedMinRange, _
+						__verifiedMaxRange _
 						)
 					]])
 
 				uxRenderOrCancelButton.text = 'Cancel'
+		listen raIndexTypeSelector.selectedValueChanged, do(sender, e as EventArgs)
+			min1 as number
+			min2 as number
+			max1 as number
+			max2 as number
+			branch raIndexTypeSelector.selectedItem to String
+				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min2, max2 = 0, 255
+				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min2, max2 = 0, 1
+				on 'Hue', min2, max2 = 0, 360
+			branch __verifiedIndexType
+				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min1, max1 = 0, 255
+				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min1, max1 = 0, 1
+				on 'Hue', min1, max1 = 0, 360
+			__verifiedIndexType = sender.selectedItem to String
+			__verifiedMinRange = (((__verifiedMinRange - min1) / max1) * max2 + min2)
+			__verifiedMaxRange = (((__verifiedMaxRange - min1) / max1) * max2 + min2)
+			raMinBox.text, raMaxBox.text = __verifiedMinRange.toString('0.#####'), __verifiedMaxRange.toString('0.#####')

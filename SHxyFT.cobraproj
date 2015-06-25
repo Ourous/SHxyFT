@@ -18,7 +18,7 @@
     <ErrorReport>prompt</ErrorReport>
     <ConsolePause>false</ConsolePause>
     <Optimize>false</Optimize>
-    <Number>float</Number>
+    <Number>float64</Number>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <OutputPath>bin\Release</OutputPath>
@@ -32,13 +32,14 @@
     <IncludeTraces>false</IncludeTraces>
     <EmbedRunTime>true</EmbedRunTime>
     <Debug>off</Debug>
-    <Number>float</Number>
+    <Number>float64</Number>
     <CobraArgs>-t:winexe</CobraArgs>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Web.RegularExpressions" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Cobra\Cobra.targets" />
   <ItemGroup>
