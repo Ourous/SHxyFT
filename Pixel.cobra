@@ -67,75 +67,90 @@ struct Pixel
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					ret = 1 - pixel.r / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0n, ret)
+					r, g, b = pixel.r, pixel.g, pixel.b
+					denom = if(b < r > g, r, if(b < g, g, b))
+					if denom
+						return 1 - r / denom
+					else
+						return 0n
 
 
 			def magenta as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					ret = 1 - pixel.g / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0n, ret)
+					r, g, b = pixel.r, pixel.g, pixel.b
+					denom = if(b < r > g, r, if(b < g, g, b))
+					if denom
+						return 1 - g / denom
+					else
+						return 0n
 
 
 			def yellow as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					ret = 1 - pixel.b / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0n, ret)
+					r, g, b = pixel.r, pixel.g, pixel.b
+					denom = if(b < r > g, r, if(b < g, g, b))
+					if denom
+						return 1 - b / denom
+					else
+						return 0n
 
 
 			def kValue as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					kVal = 1 - if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b)) / 255n
-					return kVal
+					r, g, b = pixel.r, pixel.g, pixel.b
+					return 1 - if(b < r > g, r, if(b < g, g, b)) / 255n
 
 
 			def alpha as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					return pixel.a to float
+					return pixel.a to number
 
 
 			def luminance as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					return 0.299*pixel.r + 0.587*pixel.g + 0.114*pixel.b
+					return 0.299n*pixel.r + 0.587n*pixel.g + 0.114n*pixel.b
 
 	
 			def saturation as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 					
-					ret = if(pixel.b >= pixel.r <= pixel.g, pixel.r, if(pixel.b >= pixel.g, pixel.g, pixel.b)) / if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b))
-					return if(ret.isNaN, 0n, ret)
+					r, g, b = pixel.r, pixel.g, pixel.b
+					denom = if(b < r > g, r, if(b < g, g, b))
+					if denom
+						return if(b > r < g, r, if(b > g, g, b)) / denom
+					else
+						return 0n
+
 	
 			def hue as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					rDif, gDif, bDif = pixel.r/255n, pixel.g/255n, pixel.b/255n
-					cMax = if(bDif <= rDif >= gDif, rDif, if(gDif >= bDif, gDif, bDif))
-					cMin = if(bDif >= rDif <= gDif, rDif, if(gDif <= bDif, gDif, bDif))
-					delta = cMax - cMin	
-					if delta == 0, return 0n
-					else if cMax == rDif, return 60* (((gDif - bDif) / delta) % 6)
-					else if cMax == gDif, return 60* (((bDif - rDif) / delta) + 2)
-					else if cMax == bDif, return 60* (((rDif - gDif) / delta) + 6)
-					else, throw ArithmeticException('Tell Ourous that he messed up the hue indexer again: [pixel] @ HUE')
+					r, g, b = pixel.r, pixel.g, pixel.b
+					if r == g == b, return 0n
+					if b <= r >= g, return 60 * (((g - b) / (r - if(b < g, b, g))) % 6)
+					if r <= g >= b, return 60 * (((b - r) / (g - if(r < b, r, b))) + 2)
+					if g <= b >= r, return 60 * (((r - g) / (b - if(g < r, g, r))) + 6)
+					throw ArithmeticException('Tell Ourous that he messed up the hue indexer again: [pixel]@HUE')
 
 
 			def value as PixelIndexer
 
 				return PixelIndexer(do(pixel as Pixel))
 
-					return if(pixel.b <= pixel.r >= pixel.g, pixel.r, if(pixel.b <= pixel.g, pixel.g, pixel.b)) / 255n
+					r, g, b = pixel.r, pixel.g, pixel.b
+					return if(b < r > g, r, if(b < g, g, b)) / 255n
 
 
 			def colorDiff(referenceColor as Pixel) as PixelIndexer

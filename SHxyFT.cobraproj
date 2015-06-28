@@ -48,5 +48,6 @@
     <Compile Include="Renderer.cobra" />
     <Compile Include="Pixel.cobra" />
     <Compile Include="WindowHandlers.cobra" />
+    <Compile Include="WindowHelpText.cobra" />
   </ItemGroup>
 </Project>

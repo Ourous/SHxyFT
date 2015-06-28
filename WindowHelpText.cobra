@@ -1,0 +1,35 @@
+﻿use System.Windows.Forms
+
+class Window is partial
+
+	def __setupHelpText
+		"""
+		Sets the hover-over help text for all the controls in the window
+		"""
+		__uxHelp.setToolTip(__uxOpen, "Open a new image file")
+
+		__uxHelp.setToolTip(__uxSave, "Save the current render")
+
+		__uxHelp.setToolTip(__uxUndo, "Undo the previous render")
+
+		__uxHelp.setToolTip(__uxRedo, "Redo the last render")
+
+		__uxHelp.setToolTip(__raSortAngle, "Sort angle (in degrees)")
+
+		__uxHelp.setToolTip(__raIndexType, "Index type to be sorted")
+
+		__uxHelp.setToolTip(__uxLayoutColorDiff, 'ARGB values for the comparison color used in ColorDiff indexing')
+
+		__uxHelp.setToolTip(__raColorDiffAlpha, 'Alpha value for the comparison color used in ColorDiff indexing')
+
+		__uxHelp.setToolTip(__raColorDiffRed, 'Red value for the comparison color used in ColorDiff indexing')
+
+		__uxHelp.setToolTip(__raColorDiffGreen, 'Green value for the comparison color used in ColorDiff indexing')
+
+		__uxHelp.setToolTip(__raColorDiffBlue, 'Blue value for the comparison color used in ColorDiff indexing')
+
+		__uxHelp.setToolTip(__raMinSortRange, "Minimum value for indexes to be sorted")
+
+		__uxHelp.setToolTip(__raMaxSortRange, "Maximum value for indexes to be sorted")
+
+		__uxHelp.setToolTip(__uxRenderOrCancel, "Render the current image")

@@ -15,6 +15,27 @@ class Window inherits Form is partial
 	var __verifiedMinRange = 0f
 	var __verifiedMaxRange = 255f
 
+
+	var __uxHelp as ToolTip
+	var __uxPreview as PictureBox
+	var __uxLayoutLv1 as TableLayoutPanel
+	var __uxLayoutLv2 as TableLayoutPanel
+	var __uxLayoutColorDiff as TableLayoutPanel
+	var __uxSave as Button
+	var __uxOpen as Button
+	var __uxRenderOrCancel as Button
+	var __uxUndo as Button
+	var __uxRedo as Button
+	var __uxRenderProgress as ProgressBar
+	var __raIndexType as ComboBox
+	var __raSortAngle as TextBox
+	var __raMinSortRange as TextBox
+	var __raMaxSortRange as TextBox
+	var __raColorDiffAlpha as TextBox
+	var __raColorDiffRed as TextBox
+	var __raColorDiffGreen as TextBox
+	var __raColorDiffBlue as TextBox
+
 	cue init
 
 		base.init
@@ -25,30 +46,30 @@ class Window inherits Form is partial
 		.minimumSize = Size(800,600)
 
 		# hover-over help text for the window
-		uxHelp = ToolTip()
+		__uxHelp = ToolTip()
 
 		#first layout level, contains:
 		# * Side menu
 		# * Preview pane
-		uxLayoutLv1 = TableLayoutPanel(
+		__uxLayoutLv1 = TableLayoutPanel(
 			parent=this,
 			dock=DockStyle.Fill,
 			columnCount=2,
 			rowCount=1
 			)
 		
-		uxLayoutLv1.columnStyles.addRange([
+		__uxLayoutLv1.columnStyles.addRange([
 			ColumnStyle(SizeType.AutoSize),
 			ColumnStyle(SizeType.Percent, 1)
 			])
 
-		uxLayoutLv1.rowStyles.addRange([
+		__uxLayoutLv1.rowStyles.addRange([
 			RowStyle(SizeType.AutoSize)
 			])
 
 		#second layout level, handles side menu
-		uxLayoutLv2 = TableLayoutPanel(
-			parent=uxLayoutLv1,
+		__uxLayoutLv2 = TableLayoutPanel(
+			parent=__uxLayoutLv1,
 			anchor=AnchorStyles( Bottom, Top, Left ),
 			dock=DockStyle.Fill,
 			columnCount=2,
@@ -56,12 +77,12 @@ class Window inherits Form is partial
 			width=200
 			)
 
-		uxLayoutLv2.columnStyles.addRange([
+		__uxLayoutLv2.columnStyles.addRange([
 			ColumnStyle(SizeType.Percent, 1),
 			ColumnStyle(SizeType.Percent, 1)
 			])
 
-		uxLayoutLv2.rowStyles.addRange([
+		__uxLayoutLv2.rowStyles.addRange([
 			RowStyle(), #1
 			RowStyle(), #2
 			RowStyle(), #3
@@ -72,293 +93,147 @@ class Window inherits Form is partial
 			])
 
 		#preview pane for the current render
-		uxPreview = PictureBox(
-			parent=uxLayoutLv1,
+		__uxPreview = PictureBox(
+			parent=__uxLayoutLv1,
 			dock=DockStyle.Fill,
 			image=Bitmap(1,1) # avoid nil problems
 			)
 
-		#make sure the image is always fully visible in the preview pane
-		#	and not scaled so that it blurs
-		listen uxPreview.resize, ref __previewResize
-
-		#update the preview pane when a refresh is needed
-		listen Program.PreviewRefresh, do(img as Bitmap)
-			uxPreview.image = Bitmap(img)
-			__previewResize(uxPreview, EventArgs())
-			uxPreview.refresh
-
 		#file open button
-		uxOpenButton = Button(
-			parent=uxLayoutLv2,
+		__uxOpen = Button(
+			parent=__uxLayoutLv2,
 			text='Open',
 			dock=DockStyle.Fill
 			)
 
-		#handle file opening
-		listen uxOpenButton.click, ref __openFile
-
-		#help text for open button
-		uxHelp.setToolTip(uxOpenButton, "Open a new image file")
-
 		#file save button
-		uxSaveButton = Button(
-			parent=uxLayoutLv2,
+		__uxSave = Button(
+			parent=__uxLayoutLv2,
 			text='Save',
 			dock=DockStyle.Fill
 			)
 
-		#handle file saving
-		listen uxSaveButton.click, ref __saveFile
-
-		#help text for save button
-		uxHelp.setToolTip(uxSaveButton, "Save the current render")
-
 		#undo button
-		uxUndoButton = Button(
-			parent=uxLayoutLv2,
+		__uxUndo = Button(
+			parent=__uxLayoutLv2,
 			text='Undo',
 			dock=DockStyle.Fill
 			)
 
-		#handle undo
-		listen uxUndoButton.click, do(sender, e as EventArgs)
-
-			Program.undo
-
-
-		#help text for undo button
-		uxHelp.setToolTip(uxUndoButton, "Undo the previous render")
-
 		#redo button
-		uxRedoButton = Button(
-			parent=uxLayoutLv2,
+		__uxRedo = Button(
+			parent=__uxLayoutLv2,
 			text='Redo',
 			dock=DockStyle.Fill
 			)
 
-		#handle redo
-		listen uxRedoButton.click, do(sender, e as EventArgs)
-
-			Program.redo
-
-
-		#help text for redo button
-		uxHelp.setToolTip(uxRedoButton, "Redo the last render")
-
 		#degree box, specifies the angle of the sort
-		raDegBox = TextBox(
-			parent=uxLayoutLv2,
+		__raSortAngle = TextBox(
+			parent=__uxLayoutLv2,
 			text='0.0',
 			dock=DockStyle.Fill
 			)
 
-		#help text for degrees box
-		uxHelp.setToolTip(raDegBox, "Sort angle (in degrees)")
-
-		listen raDegBox.textChanged, ref __verifyDegValue
-
 		#drop-down selector for the index type to be sorted
-		raIndexTypeSelector = ComboBox(
-			parent=uxLayoutLv2,
+		__raIndexType = ComboBox(
+			parent=__uxLayoutLv2,
 			dropDownStyle=ComboBoxStyle.DropDownList,
 			dock=DockStyle.Fill
 			)
 
-		#help text for the index type selector
-		uxHelp.setToolTip(raIndexTypeSelector, "Index type to be sorted")
-
 		#options for the index type selector
-		raIndexTypeSelector.items.addRange(@[
+		__raIndexType.items.addRange(@[
 			'Alpha', 'Red', 'Green', 'Blue', 'Cyan', 'Magenta', 'Yellow', 'K-Value', 'Hue', 'Saturation', 'Value', 'Color Diff', 'Luminance'
 			])
 
 		#start the index selector with the most 
-		raIndexTypeSelector.selectedItem = 'Luminance'
+		__raIndexType.selectedItem = 'Luminance'
 
-
-
-		uxLayoutColorDiffARGBSelector = TableLayoutPanel(
-			parent=uxLayoutLv2,
+		__uxLayoutColorDiff = TableLayoutPanel(
+			parent=__uxLayoutLv2,
 			columnCount=4,
 			rowCount=1,
 			dock=DockStyle.Fill,
 			enabled=false,
 			padding=Padding(0),
-			autoSize=true
+			autoSize=true,
+			backColor=Color.black
 			)
 
-		uxLayoutColorDiffARGBSelector.columnStyles.addRange(@[
+		__uxLayoutColorDiff.columnStyles.addRange(@[
 			ColumnStyle(SizeType.Percent, 1),
 			ColumnStyle(SizeType.Percent, 1),
 			ColumnStyle(SizeType.Percent, 1),
 			ColumnStyle(SizeType.Percent, 1)
 			])
 
-		uxLayoutColorDiffARGBSelector.rowStyles.addRange(@[
+		__uxLayoutColorDiff.rowStyles.addRange(@[
 			RowStyle(SizeType.AutoSize)
 			])
 
-		uxLayoutLv2.setColumnSpan(uxLayoutColorDiffARGBSelector, 2)
+		__uxLayoutLv2.setColumnSpan(__uxLayoutColorDiff, 2)
 
-		uxHelp.setToolTip(uxLayoutColorDiffARGBSelector, 'ARGB values for the comparison color used in ColorDiff indexing')
-
-		listen raIndexTypeSelector.selectedValueChanged, do(sender, e as EventArgs)
-			uxLayoutColorDiffARGBSelector.enabled = raIndexTypeSelector.selectedItem to String == 'Color Diff'
-
-		raColorDiffAlpha = TextBox(
-			parent=uxLayoutColorDiffARGBSelector,
+		__raColorDiffAlpha = TextBox(
+			parent=__uxLayoutColorDiff,
 			tag=0,
 			dock=DockStyle.Fill,
 			text='255'
 			)
 
-		listen raColorDiffAlpha.textChanged, ref __verifyColorDiffBox
-
-		raColorDiffRed = TextBox(
-			parent=uxLayoutColorDiffARGBSelector,
+		__raColorDiffRed = TextBox(
+			parent=__uxLayoutColorDiff,
 			tag=1,
 			dock=DockStyle.Fill,
 			text='0'
 			)
 
-		listen raColorDiffRed.textChanged, ref __verifyColorDiffBox
-
-		raColorDiffGreen = TextBox(
-			parent=uxLayoutColorDiffARGBSelector,
+		__raColorDiffGreen = TextBox(
+			parent=__uxLayoutColorDiff,
 			tag=2,
 			dock=DockStyle.Fill,
 			text='0'
 			)
 
-		listen raColorDiffGreen.textChanged, ref __verifyColorDiffBox
-
-		raColorDiffBlue = TextBox(
-			parent=uxLayoutColorDiffARGBSelector,
+		__raColorDiffBlue = TextBox(
+			parent=__uxLayoutColorDiff,
 			tag=3,
 			dock=DockStyle.Fill,
 			text='0'
 			)
 
-		listen raColorDiffBlue.textChanged, ref __verifyColorDiffBox
-
 		#min value box for sort
-		raMinBox = TextBox(
-			parent=uxLayoutLv2,
-			text='100',
+		__raMinSortRange = TextBox(
+			parent=__uxLayoutLv2,
+			text='0',
 			dock=DockStyle.Fill
 			)
 
-		#TODO
-		listen raMinBox.textChanged, ref __verifyRangeMin
-
-		#help text for min value box
-		uxHelp.setToolTip(raMinBox, "Minimum value for indexes to be sorted")
-
 		#max value box for sort
-		raMaxBox = TextBox(
-			parent=uxLayoutLv2,
+		__raMaxSortRange = TextBox(
+			parent=__uxLayoutLv2,
 			text='255',
 			dock=DockStyle.Fill
 			)
 
-		#TODO
-		listen raMaxBox.textChanged, ref __verifyRangeMax
-
-		#help text for max value box
-		uxHelp.setToolTip(raMaxBox, "Maximum value for indexes to be sorted")
-
 		#render button, also handles render cancelling
-		uxRenderOrCancelButton = Button(
-			parent=uxLayoutLv2,
+		__uxRenderOrCancel = Button(
+			parent=__uxLayoutLv2,
 			text='Render',
 			dock=DockStyle.Fill
 			)
 
-		#help text for render button
-		#TODO change help text when button displays cancel option
-		uxHelp.setToolTip(uxRenderOrCancelButton, "Render the current image")
-
 		#progress bar for renders
-		uxRenderProgressBar = ProgressBar(
-			parent=uxLayoutLv2,
+		__uxRenderProgress = ProgressBar(
+			parent=__uxLayoutLv2,
 			minimum=0,
 			maximum=100,
 			dock=DockStyle.Fill
 			)
 
-		#handle progress bar updating
-		listen Program.renderThread.progressChanged, do(sender, e as ProgressChangedEventArgs)
 
-			uxRenderProgressBar.value = e.progressPercentage
+		#TODO move this into WindowHandlers.cobra
 
 
-		#update progress bar and render button to default state when render finished
-		listen Program.renderThread.runWorkerCompleted, do(sender, e as RunWorkerCompletedEventArgs)
+		__setupHelpText
 
-			uxRenderOrCancelButton.text = 'Render'
-			uxRenderProgressBar.value = 0
-
-
-		#handle render / cancel operations
-		listen uxRenderOrCancelButton.click, do(sender, e as EventArgs?)
-
-			if uxRenderOrCancelButton.text == 'Cancel'
-
-				Program.renderThread.cancelAsync
-
-				uxRenderOrCancelButton.text = 'Render'
-
-
-			else
-				branch __verifiedIndexType
-					on 'Alpha', indexer = Pixel.Indexers.alpha
-					on 'Red', indexer = Pixel.Indexers.red
-					on 'Green', indexer = Pixel.Indexers.green
-					on 'Blue', indexer = Pixel.Indexers.blue
-					on 'Cyan', indexer = Pixel.Indexers.cyan
-					on 'Magenta', indexer = Pixel.Indexers.magenta
-					on 'Yellow', indexer = Pixel.Indexers.yellow
-					on 'K-Value', indexer = Pixel.Indexers.kValue
-					on 'Hue', indexer = Pixel.Indexers.hue
-					on 'Saturation', indexer = Pixel.Indexers.saturation
-					on 'Value', indexer = Pixel.Indexers.value
-					on 'Color Diff', indexer = Pixel.Indexers.colorDiff(
-						Pixel(
-							__verifiedComparisonColorValues[0],
-							__verifiedComparisonColorValues[1],
-							__verifiedComparisonColorValues[2],
-							__verifiedComparisonColorValues[3]
-							)
-						)
-					on 'Luminance', indexer = Pixel.Indexers.luminance
-
-				#TODO add error checking for argument collection
-				Program.renderThread.runWorkerAsync(@[
-					Program.currentImage to Object,
-					__verifiedSortAngle to Object,
-					indexer to Object,
-					@[Pair<of float>( _
-						__verifiedMinRange, _
-						__verifiedMaxRange _
-						)
-					]])
-
-				uxRenderOrCancelButton.text = 'Cancel'
-		listen raIndexTypeSelector.selectedValueChanged, do(sender, e as EventArgs)
-			min1 as number
-			min2 as number
-			max1 as number
-			max2 as number
-			branch raIndexTypeSelector.selectedItem to String
-				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min2, max2 = 0, 255
-				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min2, max2 = 0, 1
-				on 'Hue', min2, max2 = 0, 360
-			branch __verifiedIndexType
-				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min1, max1 = 0, 255
-				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min1, max1 = 0, 1
-				on 'Hue', min1, max1 = 0, 360
-			__verifiedIndexType = sender.selectedItem to String
-			__verifiedMinRange = (((__verifiedMinRange - min1) / max1) * max2 + min2)
-			__verifiedMaxRange = (((__verifiedMaxRange - min1) / max1) * max2 + min2)
-			raMinBox.text, raMaxBox.text = __verifiedMinRange.toString('0.#####'), __verifiedMaxRange.toString('0.#####')
+		__setupHandlers

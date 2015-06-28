@@ -439,7 +439,7 @@ class Renderer
 			assert __normalizeAngle(225) == 45
 			assert __normalizeAngle(270) == 0
 			assert __normalizeAngle(315) == 45
-			expect Exception, __normalizeAngle(360)
+			expect RequireException, __normalizeAngle(360)
 
 
 		body
@@ -488,8 +488,8 @@ class Renderer
 
 			for range in rangeSet
 	
-				# for all relevant purposes to how it's used,
-				# equivalent to range.a <= num <= range.b, but faster
+				# for all relevant purposes to how it's used, it is
+				#  equivalent to range.a <= num <= range.b, but faster
 				if (num%range.a<>num or num==range.a) and (num%range.b==num or num==range.b)
 	
 					return true

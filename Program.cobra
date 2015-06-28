@@ -58,7 +58,7 @@ class Program
 
 			if __historyIndex < __history.count-1
 
-				__historyIndex += 15
+				__historyIndex += 1
 
 				raise .PreviewRefresh, .currentImage
 

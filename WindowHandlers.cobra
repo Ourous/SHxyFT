@@ -1,139 +1,307 @@
 ﻿use System.Windows.Forms
 use System.Text.RegularExpressions
 use System.Drawing
+use System.ComponentModel
 
 class Window is partial
 
-	def __verifyColorDiffBox(sender, e as EventArgs)
-		if sender inherits TextBox
-			num as uint8
-			try
-				if sender.text == nil or sender.text == ''
-					num = 0u8
-				else
-					num = uint8.parse(sender.text to !)
-			catch FormatException
-				num = __verifiedComparisonColorValues[sender.tag to int]
-			catch OverflowException
-				num = 255u8
-			finally
-				if num <> __verifiedComparisonColorValues[sender.tag to int] or num.toString <> sender.text
-					sender.text = (__verifiedComparisonColorValues[sender.tag to int] = num).toString
+	def __setupHandlers
+		"""
+		Set the handler methods for the controls in the Window
+		"""
 
-
-	def __verifyRangeMin(sender, e as EventArgs)
-
-		if sender inherits TextBox
+		boxMinMax = Func<of number, number>(do(num as number))
+			
 			min as number
 			max as number
-			num as number
 
 			branch __verifiedIndexType
+
 				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min, max = 0, 255
 				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min, max = 0, 1
 				on 'Hue', min, max = 0, 360
 
-			if sender.text == nil or sender.text == ''
-				num = 0n
-			else
-				num = try number.parse(sender.text to !) catch FormatException get __verifiedMinRange
-				if num < min
-					num = min
-				if num > max
-					num = max
-				if num > __verifiedMaxRange
-					num = __verifiedMaxRange
-			if not Regex(r'^\d+\.$').isMatch(sender.text)
-				sender.text = (__verifiedMinRange = num).toString('0.#####')
-					
-	def __verifyRangeMax(sender, e as EventArgs)
-		if sender inherits TextBox
-			min as number
-			max as number
-			num as number
+			if num < min, return min
+			else if num > max, return max
+			return num
 
-			branch __verifiedIndexType
-				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min, max = 0, 255
-				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min, max = 0, 1
-				on 'Hue', min, max = 0, 360
-
-
-			if sender.text == nil or sender.text == ''
-				num = 0n
-			else
-				num = try number.parse(sender.text to !) catch FormatException get __verifiedMaxRange
-				if num < min
-					num = min
-				if num > max
-					num = max
-				if num < __verifiedMinRange
-					num = __verifiedMinRange
-
-			if not Regex(r'^\d+\.$').isMatch(sender.text)
-				sender.text = (__verifiedMaxRange = num).toString('0.#####')
-
-	def __verifyIndexType(sender, e as EventArgs)
-		# index type is verified intrinsically
-		pass
-
-	def __verifyDegValue(sender, e as EventArgs)
-		if sender inherits TextBox
-			num as number
-			if sender.text == nil or sender.text == ''
-				num = 0n
-			else
-				num = try number.parse(sender.text to !) catch FormatException get __verifiedSortAngle
-				if num < 0, num = 0
-				if num >= 360, num = 0
-			if not Regex(r'^\d+\.$').isMatch(sender.text)
-				sender.text = ( __verifiedSortAngle = num ).toString('0.#####')
-
-	def __saveFile(sender, e as EventArgs)
-		saveDialog = SaveFileDialog(
-			defaultExt='png',
-			addExtension=true,
-			filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap Image (*.bmp)|.bmp'
-			)
-
-		response = saveDialog.showDialog
-
-		if response == DialogResult.OK
-
-			file = saveDialog.fileName
-
-			try
-
-				Program.currentImage.save(file)
-
-
-			catch
-
-				MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
-
-	def __openFile(sender, e as EventArgs)
-		openDialog = OpenFileDialog(defaultExt='png')
-		response = openDialog.showDialog
-
-		if response == DialogResult.OK
-
-			file = openDialog.fileName
-
-			try
-
-				Program.sourceImage = Bitmap(file)
-
-
-			catch
-
-				MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
-
-	def __previewResize(sender, e as EventArgs)
-		if sender inherits PictureBox
+		resizePreview = Action(do)
 			#if the image is smaller than the picture box
-			if sender.width > sender.image.width and sender.height > sender.image.height
+			if __uxPreview.width > __uxPreview.image.width and __uxPreview.height > __uxPreview.image.height
+
 				#put the image in the center
-				sender.sizeMode = PictureBoxSizeMode.CenterImage
+				__uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
+
+
 			#otherwise the image is too large to fit without clipping
 			else
+
 				#scale the image to the size of the picture box while retaining aspect ratio
-				sender.sizeMode = PictureBoxSizeMode.Zoom
+				__uxPreview.sizeMode = PictureBoxSizeMode.Zoom
+
+		isFullDecimal = Func<of String, bool>(do(str as String))
+			return not Regex(r'^\d+.$').isMatch(str)
+
+		listen __uxPreview.resize, do(sender, e as EventArgs)
+
+			resizePreview()
+
+		listen Program.PreviewRefresh, do(img as Bitmap)
+
+			__uxPreview.image = Bitmap(img)
+			resizePreview()
+			__uxPreview.refresh
+
+		listen __uxOpen.click, do(sender, e as EventArgs)
+
+			openDialog = OpenFileDialog(defaultExt='png')
+			response = openDialog.showDialog
+	
+			if response == DialogResult.OK
+	
+				file = openDialog.fileName
+	
+				try
+	
+					Program.sourceImage = Bitmap(file)
+					
+	
+				catch
+	
+					MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+		listen __uxSave.click, do(sender, e as EventArgs)
+
+			saveDialog = SaveFileDialog(
+				defaultExt='png',
+				addExtension=true,
+				filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap Image (*.bmp)|.bmp'
+				)
+	
+			response = saveDialog.showDialog
+	
+			if response == DialogResult.OK
+	
+				file = saveDialog.fileName
+	
+				try
+	
+					Program.currentImage.save(file)
+	
+	
+				catch
+	
+					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+
+		listen __uxUndo.click, do(sender, e as EventArgs)
+
+			Program.undo
+
+
+		listen __uxRedo.click, do(sender, e as EventArgs)
+
+			Program.redo
+
+
+		listen __raSortAngle.textChanged, do(sender, e as EventArgs)
+
+			num as number
+
+			if __raSortAngle.text == nil or __raSortAngle.text == ''
+
+				num = 0n
+
+
+			else
+
+				num = try number.parse(__raSortAngle.text to !) catch FormatException get __verifiedSortAngle
+
+				if num < 0, num = 0
+				if num >= 360, num = 0
+
+			
+			if isFullDecimal(__raSortAngle.text)
+
+				__raSortAngle.text = ( __verifiedSortAngle = num ).toString('0.#####')
+
+
+		listen __raMinSortRange.textChanged, do(sender, e as EventArgs)
+
+			num as number
+
+			if __raMinSortRange.text == nil or __raMinSortRange.text == ''
+
+				num = 0n
+
+
+			else
+
+				num = try number.parse(__raMinSortRange.text to !) catch FormatException get __verifiedMinRange
+
+				num = boxMinMax(num)
+
+				if num > __verifiedMaxRange
+
+					num = __verifiedMaxRange
+
+
+			if isFullDecimal(__raMinSortRange.text)
+
+				__raMinSortRange.text = (__verifiedMinRange = num).toString('0.#####')
+
+		listen __raMaxSortRange.textChanged, do(sender, e as EventArgs)
+
+			num as number
+
+			if __raMaxSortRange.text == nil or __raMaxSortRange.text == ''
+
+				num = 0n
+
+
+			else
+
+				num = try number.parse(__raMaxSortRange.text to !) catch FormatException get __verifiedMaxRange
+
+				num = boxMinMax(num)
+
+				if num < __verifiedMinRange
+
+					num = __verifiedMinRange
+
+
+			if isFullDecimal(__raMaxSortRange.text)
+
+				__raMaxSortRange.text = (__verifiedMaxRange = num).toString('0.#####')
+
+		
+		listen __uxRenderOrCancel.click, do(sender, e as EventArgs)
+
+			if __uxRenderOrCancel.text == 'Cancel'
+
+				Program.renderThread.cancelAsync
+
+				__uxRenderOrCancel.text = 'Render'
+
+
+			else
+
+				branch __verifiedIndexType
+
+					on 'Alpha', indexer = Pixel.Indexers.alpha
+					on 'Red', indexer = Pixel.Indexers.red
+					on 'Green', indexer = Pixel.Indexers.green
+					on 'Blue', indexer = Pixel.Indexers.blue
+					on 'Cyan', indexer = Pixel.Indexers.cyan
+					on 'Magenta', indexer = Pixel.Indexers.magenta
+					on 'Yellow', indexer = Pixel.Indexers.yellow
+					on 'K-Value', indexer = Pixel.Indexers.kValue
+					on 'Hue', indexer = Pixel.Indexers.hue
+					on 'Saturation', indexer = Pixel.Indexers.saturation
+					on 'Value', indexer = Pixel.Indexers.value
+					on 'Color Diff', indexer = Pixel.Indexers.colorDiff(
+						Pixel(
+							__verifiedComparisonColorValues[0],
+							__verifiedComparisonColorValues[1],
+							__verifiedComparisonColorValues[2],
+							__verifiedComparisonColorValues[3]
+							)
+						)
+					on 'Luminance', indexer = Pixel.Indexers.luminance
+
+
+				#TODO add error checking for argument collection
+				Program.renderThread.runWorkerAsync(@[
+					Program.currentImage to Object,
+					__verifiedSortAngle to Object,
+					indexer to Object,
+					@[Pair<of float>( _
+						__verifiedMinRange, _
+						__verifiedMaxRange _
+						)
+					]])
+
+				__uxRenderOrCancel.text = 'Cancel'
+
+		verifyColorDiffBox = EventHandler(do(sender, e as EventArgs))
+			
+			if sender inherits TextBox
+
+				num as uint8
+	
+				try
+	
+					if sender.text == nil or sender.text == ''
+	
+						num = 0u8
+	
+	
+					else
+	
+						num = uint8.parse(sender.text to !)
+	
+	
+				catch FormatException
+	
+					num = __verifiedComparisonColorValues[sender.tag to int]
+	
+	
+				catch OverflowException
+	
+					num = 255u8
+	
+	
+				finally
+	
+					if num <> __verifiedComparisonColorValues[sender.tag to int] or num.toString <> sender.text
+	
+						sender.text = (__verifiedComparisonColorValues[sender.tag to int] = num).toString
+
+			__uxLayoutColorDiff.backColor = Color.fromArgb(__verifiedComparisonColorValues[1], __verifiedComparisonColorValues[2], __verifiedComparisonColorValues[3])
+			__uxLayoutColorDiff.refresh
+
+
+		listen __raColorDiffAlpha.textChanged, verifyColorDiffBox
+		listen __raColorDiffRed.textChanged, verifyColorDiffBox
+		listen __raColorDiffGreen.textChanged, verifyColorDiffBox
+		listen __raColorDiffBlue.textChanged, verifyColorDiffBox
+
+		listen __raIndexType.selectedValueChanged, do(sender, e as EventArgs)
+			__uxLayoutColorDiff.enabled = __raIndexType.selectedItem to String == 'Color Diff'
+
+		listen Program.renderThread.progressChanged, do(sender, e as ProgressChangedEventArgs)
+
+			__uxRenderProgress.value = e.progressPercentage
+
+		listen Program.renderThread.runWorkerCompleted, do(sender, e as RunWorkerCompletedEventArgs)
+
+			__uxRenderOrCancel.text = 'Render'
+			__uxRenderProgress.value = 0
+
+		listen __raIndexType.selectedValueChanged, do(sender, e as EventArgs)
+
+			min1 as number
+			min2 as number
+			max1 as number
+			max2 as number
+
+			branch __raIndexType.selectedItem to String
+
+				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min2, max2 = 0, 255
+				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min2, max2 = 0, 1
+				on 'Hue', min2, max2 = 0, 360
+
+
+			branch __verifiedIndexType
+
+				on 'Luminance' or 'Red' or 'Green' or 'Blue' or 'Alpha' or 'Color Diff', min1, max1 = 0, 255
+				on 'Cyan' or 'Magenta' or 'Yellow' or 'K-Value' or 'Value' or 'Saturation', min1, max1 = 0, 1
+				on 'Hue', min1, max1 = 0, 360
+
+
+			__verifiedIndexType = __raIndexType.selectedItem to String
+
+			__verifiedMinRange = (((__verifiedMinRange - min1) / max1) * max2 + min2)
+			__verifiedMaxRange = (((__verifiedMaxRange - min1) / max1) * max2 + min2)
+
+			__raMinSortRange.text, __raMaxSortRange.text = __verifiedMinRange.toString('0.#####'), __verifiedMaxRange.toString('0.#####')
