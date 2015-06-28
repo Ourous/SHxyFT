@@ -40,7 +40,7 @@ class Window is partial
 				__uxPreview.sizeMode = PictureBoxSizeMode.Zoom
 
 		isFullDecimal = Func<of String, bool>(do(str as String))
-			return not Regex(r'^\d+.$').isMatch(str)
+			return not Regex(r'^\d+\.$').isMatch(str)
 
 		listen __uxPreview.resize, do(sender, e as EventArgs)
 
