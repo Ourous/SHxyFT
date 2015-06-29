@@ -10,6 +10,38 @@ class Window is partial
 		Set the handler methods for the controls in the Window
 		"""
 
+		savePrompt = EventHandler(do(sender, e as EventArgs))
+
+			saveDialog = SaveFileDialog(
+				defaultExt='png',
+				addExtension=true,
+				filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap Image (*.bmp)|.bmp'
+				)
+	
+			response = saveDialog.showDialog
+	
+			if response == DialogResult.OK
+	
+				file = saveDialog.fileName
+	
+				try
+	
+					Program.currentImage.save(file)
+					Program.saved = true
+	
+				catch
+	
+					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+
+		checkSave = Func<of bool>(do)
+			response = MessageBox.show('You have not saved the current image. Do you wish to save?',
+				'Save file?', MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk)
+			if response == DialogResult.Yes
+				savePrompt(nil, EventArgs())
+				return true
+			return false
+
 		boxMinMax = Func<of number, number>(do(num as number))
 			
 			min as number
@@ -54,6 +86,8 @@ class Window is partial
 
 		listen __uxOpen.click, do(sender, e as EventArgs)
 
+			if not Program.saved, checkSave()
+
 			openDialog = OpenFileDialog(defaultExt='png')
 			response = openDialog.showDialog
 	
@@ -69,29 +103,6 @@ class Window is partial
 				catch
 	
 					MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
-
-		listen __uxSave.click, do(sender, e as EventArgs)
-
-			saveDialog = SaveFileDialog(
-				defaultExt='png',
-				addExtension=true,
-				filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap Image (*.bmp)|.bmp'
-				)
-	
-			response = saveDialog.showDialog
-	
-			if response == DialogResult.OK
-	
-				file = saveDialog.fileName
-	
-				try
-	
-					Program.currentImage.save(file)
-	
-	
-				catch
-	
-					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
 
 
 		listen __uxUndo.click, do(sender, e as EventArgs)
@@ -211,17 +222,26 @@ class Window is partial
 
 
 				#TODO add error checking for argument collection
-				Program.renderThread.runWorkerAsync(@[
-					Program.currentImage to Object,
-					__verifiedSortAngle to Object,
-					indexer to Object,
-					@[Pair<of float>( _
-						__verifiedMinRange, _
-						__verifiedMaxRange _
-						)
-					]])
-
-				__uxRenderOrCancel.text = 'Cancel'
+				args = Object[](4)
+				try
+					args[0] = Program.currentImage to Object
+				catch NullReferenceException
+					MessageBox.show('Please open an image to use as a source before starting a render.', 'Warning', MessageBoxButtons.OK, MessageBoxIcon.Warning)
+				success, try
+					args[1] = __verifiedSortAngle to Object
+				catch
+					throw Exception('Tell Ourous he messed up the sort angle passing to the render thread.')
+				success, try
+					args[2] = indexer to Object
+				catch
+					throw Exception('Tell Ourous he messed up the indexer passing to the render thread.')
+				success, try
+					args[3] = @[Pair<of number>( __verifiedMinRange, __verifiedMaxRange)] to Object
+				catch
+					throw Exception('Tell Ourous he messed up the range passing to the render thread.')
+				success
+					Program.renderThread.runWorkerAsync(args)
+					__uxRenderOrCancel.text = 'Cancel'
 
 		verifyColorDiffBox = EventHandler(do(sender, e as EventArgs))
 			
@@ -305,3 +325,10 @@ class Window is partial
 			__verifiedMaxRange = (((__verifiedMaxRange - min1) / max1) * max2 + min2)
 
 			__raMinSortRange.text, __raMaxSortRange.text = __verifiedMinRange.toString('0.#####'), __verifiedMaxRange.toString('0.#####')
+
+		listen .formClosing, do(sender, e as FormClosingEventArgs)
+			if Program.renderThread.isBusy
+				response = MessageBox.show('There is a render in progress, do you want to cancel it and close the application?', 'Render in progress', MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk)
+				if response == DialogResult.Yes
+					e.cancel = true
+			if not Program.saved, checkSave()
