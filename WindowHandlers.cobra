@@ -5,7 +5,7 @@ use System.ComponentModel
 
 class Window is partial
 
-	def __setupControlHandlers
+	def __setupHandlers
 		"""
 		Set the handler methods for the controls in the Window
 		"""
@@ -33,11 +33,6 @@ class Window is partial
 	
 					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
 
-		listen __SavePrompt, do
-			savePrompt(nil, EventArgs())
-
-		listen __uxSave.click, savePrompt
-			
 
 		checkSave = Func<of bool>(do)
 			response = MessageBox.show('You have not saved the current image. Do you wish to save?',
@@ -77,7 +72,7 @@ class Window is partial
 				__uxPreview.sizeMode = PictureBoxSizeMode.Zoom
 
 		isFullDecimal = Func<of String, bool>(do(str as String))
-			return Regex(r'^-?\d+(\.\d+)?$').isMatch(str)
+			return not Regex(r'^\d+\.$').isMatch(str)
 
 		listen __uxPreview.resize, do(sender, e as EventArgs)
 
@@ -126,12 +121,16 @@ class Window is partial
 
 			if __raSortAngle.text == nil or __raSortAngle.text == ''
 
-				__raSortAngle.text = '0'
+				num = 0n
 
-			num = try number.parse(__raSortAngle.text to !) catch FormatException get __verifiedSortAngle
 
-			if num < 0, num = 0
-			if num >= 360, num = 0
+			else
+
+				num = try number.parse(__raSortAngle.text to !) catch FormatException get __verifiedSortAngle
+
+				if num < 0, num = 0
+				if num >= 360, num = 0
+
 			
 			if isFullDecimal(__raSortAngle.text)
 
@@ -144,16 +143,18 @@ class Window is partial
 
 			if __raMinSortRange.text == nil or __raMinSortRange.text == ''
 
-				__raMinSortRange.text = '0'
+				num = 0n
 
 
-			num = try number.parse(__raMinSortRange.text to !) catch FormatException get __verifiedMinRange
+			else
 
-			num = boxMinMax(num)
+				num = try number.parse(__raMinSortRange.text to !) catch FormatException get __verifiedMinRange
 
-			if num > __verifiedMaxRange
+				num = boxMinMax(num)
 
-				num = __verifiedMaxRange
+				if num > __verifiedMaxRange
+
+					num = __verifiedMaxRange
 
 
 			if isFullDecimal(__raMinSortRange.text)
@@ -166,15 +167,18 @@ class Window is partial
 
 			if __raMaxSortRange.text == nil or __raMaxSortRange.text == ''
 
-				__raMaxSortRange.text = '0'
+				num = 0n
 
-			txt = num = try number.parse(__raMaxSortRange.text to !) catch FormatException get __verifiedMaxRange
 
-			num = boxMinMax(num)
+			else
 
-			if num < __verifiedMinRange
+				num = try number.parse(__raMaxSortRange.text to !) catch FormatException get __verifiedMaxRange
 
-				num = __verifiedMinRange
+				num = boxMinMax(num)
+
+				if num < __verifiedMinRange
+
+					num = __verifiedMinRange
 
 
 			if isFullDecimal(__raMaxSortRange.text)
