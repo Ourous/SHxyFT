@@ -80,8 +80,13 @@ class Program
 					img = e.result to Bitmap
 
 
-				catch ex as Exception
+				catch InvalidOperationException
 
+					pass
+
+
+				catch ex as Exception
+					
 					throw ex
 
 

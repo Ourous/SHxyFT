@@ -10,7 +10,7 @@ class Window is partial
 		Set the handler methods for the controls in the Window
 		"""
 
-		savePrompt = EventHandler(do(sender, e as EventArgs))
+		listen __SavePrompt, do
 
 			saveDialog = SaveFileDialog(
 				defaultExt='png',
@@ -33,19 +33,41 @@ class Window is partial
 	
 					MessageBox.show('Unable to save file to:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
 
-		listen __SavePrompt, do
-			savePrompt(nil, EventArgs())
-
-		listen __uxSave.click, savePrompt
+		listen __uxSave.click, do(sender, e as EventArgs)
+			raise __SavePrompt
 			
 
 		checkSave = Func<of bool>(do)
 			response = MessageBox.show('You have not saved the current image. Do you wish to save?',
 				'Save file?', MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk)
 			if response == DialogResult.Yes
-				savePrompt(nil, EventArgs())
+				raise __SavePrompt
 				return true
 			return false
+
+		listen __OpenPrompt, do
+
+			if not Program.saved, checkSave()
+
+			openDialog = OpenFileDialog(defaultExt='png')
+			response = openDialog.showDialog
+	
+			if response == DialogResult.OK
+	
+				file = openDialog.fileName
+	
+				try
+	
+					Program.sourceImage = Bitmap(file)
+					
+	
+				catch
+	
+					MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+
+		listen __uxOpen.click, do(sender, e as EventArgs)
+			raise __OpenPrompt
 
 		boxMinMax = Func<of number, number>(do(num as number))
 			
@@ -88,26 +110,6 @@ class Window is partial
 			__uxPreview.image = Bitmap(img)
 			resizePreview()
 			__uxPreview.refresh
-
-		listen __uxOpen.click, do(sender, e as EventArgs)
-
-			if not Program.saved, checkSave()
-
-			openDialog = OpenFileDialog(defaultExt='png')
-			response = openDialog.showDialog
-	
-			if response == DialogResult.OK
-	
-				file = openDialog.fileName
-	
-				try
-	
-					Program.sourceImage = Bitmap(file)
-					
-	
-				catch
-	
-					MessageBox.show('Unable to open file:\n "[file]"', 'Error', MessageBoxButtons.OK, MessageBoxIcon.Error)
 
 
 		listen __uxUndo.click, do(sender, e as EventArgs)
@@ -220,10 +222,21 @@ class Window is partial
 				#TODO add error checking for argument collection
 				args = Object[](4)
 				try
-					args[0] = Program.currentImage to Object
+					try
+						args[0] = Program.currentImage to Object
+					catch ex as NullReferenceException
+						response = MessageBox.show('You have to open an image before starting a render, do you wish to open one now?',
+							'Open file?', MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk)
+						if response == DialogResult.Yes
+							raise __OpenPrompt
+							args[0] = Program.currentImage to Object
+						else
+							throw ex
 				catch NullReferenceException
-					MessageBox.show('Please open an image to use as a source before starting a render.', 'Warning', MessageBoxButtons.OK, MessageBoxIcon.Warning)
-				success, try
+					pass
+				catch 
+					throw Exception('Tell Ourous he messed up the open prompt verify.')
+				success,try
 					args[1] = __verifiedSortAngle to Object
 				catch
 					throw Exception('Tell Ourous he messed up the sort angle passing to the render thread.')
