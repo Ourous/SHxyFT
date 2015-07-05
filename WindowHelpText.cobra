@@ -6,6 +6,7 @@ class Window is partial
 		"""
 		Sets the hover-over help text for all the controls in the window
 		"""
+
 		__uxHelp.setToolTip(__uxOpen, "Open a new image file")
 
 		__uxHelp.setToolTip(__uxSave, "Save the current render")

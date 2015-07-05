@@ -5,7 +5,7 @@ use System.Text.RegularExpressions
 
 class Window inherits Form is partial
 	"""
-	UI
+	UI for the pixelsorter
 	"""
 	#TODO add better description
 
@@ -14,7 +14,6 @@ class Window inherits Form is partial
 	var __verifiedSortAngle = 0f
 	var __verifiedMinRange = 0f
 	var __verifiedMaxRange = 255f
-
 
 	var __uxHelp as ToolTip
 	var __uxPreview as PictureBox
@@ -45,13 +44,13 @@ class Window inherits Form is partial
 
 		.text = 'SH(x,y)FT'
 
-		#set minimum size to something sensible
-		.minimumSize = Size(800,600)
+		# set minimum size to something sensible
+		.minimumSize = Size(800, 600)
 
 		# hover-over help text for the window
 		__uxHelp = ToolTip()
 
-		#first layout level, contains:
+		# first layout level, contains:
 		# * Side menu
 		# * Preview pane
 		__uxLayoutLv1 = TableLayoutPanel(
@@ -73,7 +72,7 @@ class Window inherits Form is partial
 		#second layout level, handles side menu
 		__uxLayoutLv2 = TableLayoutPanel(
 			parent=__uxLayoutLv1,
-			anchor=AnchorStyles( Bottom, Top, Left ),
+			anchor=AnchorStyles(Bottom, Top, Left),
 			dock=DockStyle.Fill,
 			columnCount=2,
 			rowCount=7,
@@ -86,70 +85,70 @@ class Window inherits Form is partial
 			])
 
 		__uxLayoutLv2.rowStyles.addRange([
-			RowStyle(), #1
-			RowStyle(), #2
-			RowStyle(), #3
-			RowStyle(), #4
-			RowStyle(), #5
-			RowStyle(), #6
-			RowStyle()  #7
+			RowStyle(),
+			RowStyle(),
+			RowStyle(),
+			RowStyle(),
+			RowStyle(),
+			RowStyle(),
+			RowStyle()
 			])
 
-		#preview pane for the current render
+		# preview pane for the current render
 		__uxPreview = PictureBox(
 			parent=__uxLayoutLv1,
 			dock=DockStyle.Fill,
-			image=Bitmap(1,1) # avoid nil problems
+			image=Bitmap(1, 1) # avoid nil problems
 			)
 
-		#file open button
+		# file open button
 		__uxOpen = Button(
 			parent=__uxLayoutLv2,
 			text='Open',
 			dock=DockStyle.Fill
 			)
 
-		#file save button
+		# file save button
 		__uxSave = Button(
 			parent=__uxLayoutLv2,
 			text='Save',
 			dock=DockStyle.Fill
 			)
 
-		#undo button
+		# undo button
 		__uxUndo = Button(
 			parent=__uxLayoutLv2,
 			text='Undo',
 			dock=DockStyle.Fill
 			)
 
-		#redo button
+		# redo button
 		__uxRedo = Button(
 			parent=__uxLayoutLv2,
 			text='Redo',
 			dock=DockStyle.Fill
 			)
 
-		#degree box, specifies the angle of the sort
+		# degree box, specifies the angle of the sort
 		__raSortAngle = TextBox(
 			parent=__uxLayoutLv2,
 			text='0.0',
 			dock=DockStyle.Fill
 			)
 
-		#drop-down selector for the index type to be sorted
+		# drop-down selector for the index type to be sorted
 		__raIndexType = ComboBox(
 			parent=__uxLayoutLv2,
 			dropDownStyle=ComboBoxStyle.DropDownList,
 			dock=DockStyle.Fill
 			)
 
-		#options for the index type selector
+		# options for the index type selector
 		__raIndexType.items.addRange(@[
 			'Alpha', 'Red', 'Green', 'Blue', 'Cyan', 'Magenta', 'Yellow', 'K-Value', 'Hue', 'Saturation', 'Value', 'Color Diff', 'Luminance'
 			])
 
-		#start the index selector with the most 
+		# start the index selector with the most traditional pixelsort index
 		__raIndexType.selectedItem = 'Luminance'
 
 		__uxLayoutColorDiff = TableLayoutPanel(
@@ -158,7 +157,6 @@ class Window inherits Form is partial
 			rowCount=1,
 			dock=DockStyle.Fill,
 			enabled=false,
-			padding=Padding(0),
 			autoSize=true,
 			backColor=Color.black
 			)
@@ -204,38 +202,34 @@ class Window inherits Form is partial
 			text='0'
 			)
 
-		#min value box for sort
+		# min value box for sort
 		__raMinSortRange = TextBox(
 			parent=__uxLayoutLv2,
 			text='0',
 			dock=DockStyle.Fill
 			)
 
-		#max value box for sort
+		# max value box for sort
 		__raMaxSortRange = TextBox(
 			parent=__uxLayoutLv2,
 			text='255',
 			dock=DockStyle.Fill
 			)
 
-		#render button, also handles render cancelling
+		# render button, also handles render cancelling
 		__uxRenderOrCancel = Button(
 			parent=__uxLayoutLv2,
 			text='Render',
 			dock=DockStyle.Fill
 			)
 
-		#progress bar for renders
+		# progress bar for renders
 		__uxRenderProgress = ProgressBar(
 			parent=__uxLayoutLv2,
 			minimum=0,
 			maximum=100,
 			dock=DockStyle.Fill
 			)
-
-
-		#TODO move this into WindowHandlers.cobra
-
 
 		__setupHelpText
 

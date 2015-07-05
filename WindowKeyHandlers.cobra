@@ -3,15 +3,20 @@
 class Window is partial
 
 	def __setupKeyHandlers
+		"""
+		Sets the keybind shortcuts used in the UI
+		"""
+
+		#TODO add Ctrl + C for copying the current preview
 
 		.keyPreview = true
 
 		listen .keyDown, do(sender, e as KeyEventArgs)
+
 			if e.control, branch e.keyCode
-				on Keys.Z
-					Program.undo
-				on Keys.Y
-					Program.redo
-				on Keys.S
-					raise __SavePrompt
-				
+
+				on Keys.Z, Program.undo
+
+				on Keys.Y, Program.redo
+
+				on Keys.S, raise __SavePrompt

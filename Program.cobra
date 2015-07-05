@@ -5,7 +5,7 @@ use System.ComponentModel
 
 class Program
 	"""
-	Program
+	Class containing the main function
 	"""
 	#TODO add better description
 

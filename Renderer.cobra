@@ -1,5 +1,4 @@
-﻿
-use System.ComponentModel
+﻿use System.ComponentModel
 use System.Drawing
 use System.Threading
 use System.Drawing.Imaging
@@ -8,11 +7,9 @@ use System.Diagnostics
 
 class Renderer
 	"""
-	Renderer
+	Render methods for pixelsorting
 	"""
 	#TODO add better description
-	#TODO create render method that is invokeable without using a backgroundworker
-
 
 	def render(source as Bitmap, angle as number, indexer as Pixel.PixelIndexer, sortRanges as Pair<of number>*) as Bitmap is shared
 		"""
