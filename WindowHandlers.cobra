@@ -10,6 +10,7 @@ class Window is partial
 		Set the handler methods for the controls in the Window
 		"""
 
+		# universal save prompt
 		listen __SavePrompt, do
 
 			saveDialog = SaveFileDialog(
@@ -17,7 +18,7 @@ class Window is partial
 				addExtension=true,
 				filter='Portable Network Graphics (*.png)|.png|JPEG (*.jpg;*.jpeg)|.jpg|Bitmap Image (*.bmp)|.bmp'
 				)
-	
+
 			response = saveDialog.showDialog
 	
 			if response == DialogResult.OK
@@ -39,12 +40,14 @@ class Window is partial
 						MessageBoxIcon.Error
 						)
 
-
+		# handler for the save button
 		listen __uxSave.click, do(sender, e as EventArgs)
 
 			raise __SavePrompt
 			
 
+		# ask the user if they want to save the file
+		# returns whether they saved or not
 		checkSave = Func<of bool>(do)
 
 			response = MessageBox.show(
@@ -63,6 +66,7 @@ class Window is partial
 			return false
 
 
+		# universal open prompt
 		listen __OpenPrompt, do
 
 			if not Program.saved, checkSave()
@@ -92,11 +96,13 @@ class Window is partial
 						)
 
 
+		# handler for the open button
 		listen __uxOpen.click, do(sender, e as EventArgs)
 
 			raise __OpenPrompt
 
 
+		# used in the min/max range verification
 		boxMinMax = Func<of number, number>(do(num as number))
 			
 			min as number
@@ -114,29 +120,33 @@ class Window is partial
 			return num
 
 
+		# handles preview resizing
 		resizePreview = Action(do)
 
-			#if the image is smaller than the picture box
+			# if the image is smaller than the picture box
 			if __uxPreview.width > __uxPreview.image.width and __uxPreview.height > __uxPreview.image.height
 
-				#put the image in the center
+				# put the image in the center
 				__uxPreview.sizeMode = PictureBoxSizeMode.CenterImage
 
 
-			#otherwise the image is too large to fit without clipping
+			# otherwise the image is too large to fit without clipping
 			else
 
-				#scale the image to the size of the picture box while retaining aspect ratio
+				# scale the image to the size of the picture box while retaining aspect ratio
 				__uxPreview.sizeMode = PictureBoxSizeMode.Zoom
 
 
+		# checks if a number is part-way through being made decimal notation
 		isFullDecimal = Func<of String, bool>(do(str as String)=Regex(r'^-?\d+(\.\d+)?$').isMatch(str))
 
+		# resize the preview when the control resizes
 		listen __uxPreview.resize, do(sender, e as EventArgs)
 
 			resizePreview()
 
 
+		# reset the image in the preview and resize it when a refresh is called
 		listen Program.PreviewRefresh, do(img as Bitmap)
 
 			__uxPreview.image = img
@@ -144,16 +154,19 @@ class Window is partial
 			__uxPreview.refresh
 
 
+		# handle the undo button
 		listen __uxUndo.click, do(sender, e as EventArgs)
 
 			Program.undo
 
 
+		# handle the redo button
 		listen __uxRedo.click, do(sender, e as EventArgs)
 
 			Program.redo
 
 
+		# verification for the sort angle box
 		listen __raSortAngle.textChanged, do(sender, e as EventArgs)
 
 			num as number
@@ -170,6 +183,7 @@ class Window is partial
 				__raSortAngle.text = ( __verifiedSortAngle = num ).toString('0.#####')
 
 
+		# verification for the min range box
 		listen __raMinSortRange.textChanged, do(sender, e as EventArgs)
 
 			num as number
@@ -187,6 +201,7 @@ class Window is partial
 				__raMinSortRange.text = (__verifiedMinRange = num).toString('0.#####')
 
 
+		# verification for the max range box
 		listen __raMaxSortRange.textChanged, do(sender, e as EventArgs)
 
 			num as number
@@ -203,7 +218,8 @@ class Window is partial
 
 				__raMaxSortRange.text = (__verifiedMaxRange = num).toString('0.#####')
 
-		
+
+		# handler for the render / cancel button
 		listen __uxRenderOrCancel.click, do(sender, e as EventArgs)
 
 			if __uxRenderOrCancel.text == 'Cancel'
@@ -307,7 +323,7 @@ class Window is partial
 					__uxRenderOrCancel.text = 'Cancel'
 
 
-		# use the same delegate to handle all the byte fields for the reference color
+		# use the same delegate to verify all the reference color byte fields
 		verifyColorDiffBox = EventHandler(do(sender, e as EventArgs))
 			
 			if sender inherits TextBox
@@ -338,27 +354,34 @@ class Window is partial
 			__uxLayoutColorDiff.refresh
 
 
+		# assign verifier to all the fields
 		listen __raColorDiffAlpha.textChanged, verifyColorDiffBox
 		listen __raColorDiffRed.textChanged, verifyColorDiffBox
 		listen __raColorDiffGreen.textChanged, verifyColorDiffBox
 		listen __raColorDiffBlue.textChanged, verifyColorDiffBox
 
+		# check if the index type needs the reference color input to be active
 		listen __raIndexType.selectedValueChanged, do(sender, e as EventArgs)
 
 			__uxLayoutColorDiff.enabled = __raIndexType.selectedItem to String == 'Color Diff'
 
 
+		# update the progress bar when the render moves forwards
 		listen Program.renderThread.progressChanged, do(sender, e as ProgressChangedEventArgs)
 
 			__uxRenderProgress.value = e.progressPercentage
 
 
+		# update the render / cancel button text when the render is done,
+		# and clear the progress bar
 		listen Program.renderThread.runWorkerCompleted, do(sender, e as RunWorkerCompletedEventArgs)
 
 			__uxRenderOrCancel.text = 'Render'
 			__uxRenderProgress.value = 0
 
 
+		# scale the min / max range values when the min / max of acceptable range input
+		# is altered through an index type change
 		listen __raIndexType.selectedValueChanged, do(sender, e as EventArgs)
 
 			min1 as number
@@ -388,8 +411,10 @@ class Window is partial
 			__raMinSortRange.text, __raMaxSortRange.text = __verifiedMinRange.toString('0.#####'), __verifiedMaxRange.toString('0.#####')
 
 
+		# check if things are happening when the user tries to close the window
 		listen .formClosing, do(sender, e as FormClosingEventArgs)
 
+			# check if there is a render happening
 			if Program.renderThread.isBusy
 
 				response = MessageBox.show(
@@ -399,7 +424,9 @@ class Window is partial
 					MessageBoxIcon.Asterisk
 					)
 
+				# does the user want to keep the render or close the window?
 				if response == DialogResult.No, e.cancel = true
 
 
+			# prompt the user to save if they haven't
 			if not Program.saved, checkSave()
