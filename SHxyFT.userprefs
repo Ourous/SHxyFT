@@ -1,11 +1,11 @@
 ﻿<Properties StartupItem="SHxyFT.cobraproj">
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
-  <MonoDevelop.Ide.Workbench ActiveDocument="Program.cobra">
+  <MonoDevelop.Ide.Workbench ActiveDocument="Pixel.cobra">
     <Files>
-      <File FileName="Window.cobra" Line="40" Column="30" />
-      <File FileName="Program.cobra" Line="74" Column="71" />
-      <File FileName="Pixel.cobra" Line="1" Column="1" />
-      <File FileName="WindowHandlers.cobra" Line="233" Column="11" />
+      <File FileName="Window.cobra" Line="39" Column="30" />
+      <File FileName="Program.cobra" Line="1" Column="1" />
+      <File FileName="Pixel.cobra" Line="132" Column="42" />
+      <File FileName="WindowHandlers.cobra" Line="343" Column="37" />
       <File FileName="Renderer.cobra" Line="1" Column="1" />
       <File FileName="WindowHelpText.cobra" Line="1" Column="1" />
       <File FileName="WindowKeyHandlers.cobra" Line="1" Column="1" />

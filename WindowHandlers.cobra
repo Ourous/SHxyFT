@@ -338,6 +338,6 @@ class Window is partial
 		listen .formClosing, do(sender, e as FormClosingEventArgs)
 			if Program.renderThread.isBusy
 				response = MessageBox.show('There is a render in progress, do you want to cancel it and close the application?', 'Render in progress', MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk)
-				if response == DialogResult.Yes
+				if response == DialogResult.No
 					e.cancel = true
 			if not Program.saved, checkSave()

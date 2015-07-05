@@ -68,7 +68,7 @@ struct Pixel
 				return PixelIndexer(do(pixel as Pixel))
 
 					r, g, b = pixel.r, pixel.g, pixel.b
-					denom = if(b < r > g, r, if(b < g, g, b))
+					denom = if(r and b==b%r and g==g%r, r, if(g and b==b%g, g, b))
 					if denom
 						return 1 - r / denom
 					else
@@ -80,7 +80,7 @@ struct Pixel
 				return PixelIndexer(do(pixel as Pixel))
 
 					r, g, b = pixel.r, pixel.g, pixel.b
-					denom = if(b < r > g, r, if(b < g, g, b))
+					denom = if(r and b==b%r and g==g%r, r, if(g and b==b%g, g, b))
 					if denom
 						return 1 - g / denom
 					else
@@ -92,7 +92,7 @@ struct Pixel
 				return PixelIndexer(do(pixel as Pixel))
 
 					r, g, b = pixel.r, pixel.g, pixel.b
-					denom = if(b < r > g, r, if(b < g, g, b))
+					denom = if(r and b==b%r and g==g%r, r, if(g and b==b%g, g, b))
 					if denom
 						return 1 - b / denom
 					else
@@ -104,7 +104,7 @@ struct Pixel
 				return PixelIndexer(do(pixel as Pixel))
 
 					r, g, b = pixel.r, pixel.g, pixel.b
-					return 1 - if(b < r > g, r, if(b < g, g, b)) / 255n
+					return 1 - if(r and b==b%r and g==g%r, r, if(g and b==b%g, g, b)) / 255n
 
 
 			def alpha as PixelIndexer
@@ -126,9 +126,10 @@ struct Pixel
 				return PixelIndexer(do(pixel as Pixel))
 					
 					r, g, b = pixel.r, pixel.g, pixel.b
-					denom = if(b < r > g, r, if(b < g, g, b))
+					denom = if(r and b==b%r and g==g%r, r, if(g and b==b%g, g, b))
 					if denom
-						return if(b > r < g, r, if(b > g, g, b)) / denom
+						#return if(b > r < g, r, if(b > g, g, b)) / denom
+						return if(r and b<>b%r and g<>g%r, r, if(g and b<>b%g, g, b)) / denom
 					else
 						return 0n
 
@@ -138,10 +139,16 @@ struct Pixel
 				return PixelIndexer(do(pixel as Pixel))
 
 					r, g, b = pixel.r, pixel.g, pixel.b
-					if r == g == b, return 0n
-					if b <= r >= g, return 60 * (((g - b) / (r - if(b < g, b, g))) % 6)
-					if r <= g >= b, return 60 * (((b - r) / (g - if(r < b, r, b))) + 2)
-					if g <= b >= r, return 60 * (((r - g) / (b - if(g < r, g, r))) + 6)
+					if r==g==b, return 0n
+					#if b <= r >= g
+					if r and (r==b or b==b%r) and (r==g or g==g%r)
+						return 60 * (((g - b) / (r - if(g and b==b%g, b, g))) % 6) #if(b < g, b, g)
+					#if r <= g >= b
+					if g and (g==r or r==r%g) and (g==b or b==b%g)
+						return 60 * (((b - r) / (g - if(b and r==r%b, r, b))) + 2) #if(r < b, r, b)
+					#if g <= b >= r
+					if b and (b==g or g==g%b) and (b==r or r==r%b)
+						return 60 * (((r - g) / (b - if(r and g==g%r, g, r))) + 6) #if(g < r, g, r)
 					throw ArithmeticException('Tell Ourous that he messed up the hue indexer again: [pixel]@HUE')
 
 
@@ -150,7 +157,8 @@ struct Pixel
 				return PixelIndexer(do(pixel as Pixel))
 
 					r, g, b = pixel.r, pixel.g, pixel.b
-					return if(b < r > g, r, if(b < g, g, b)) / 255n
+					#return if(b < r > g, r, if(b < g, g, b)) / 255n
+					return if(r and b==b%r and g==g%r, r, if(g and b==b%g, g, b)) / 255n
 
 
 			def colorDiff(referenceColor as Pixel) as PixelIndexer
