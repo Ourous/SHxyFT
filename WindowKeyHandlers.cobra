@@ -1,0 +1,17 @@
+﻿use System.Windows.Forms
+
+class Window is partial
+
+	def __setupKeyHandlers
+
+		.keyPreview = true
+
+		listen .keyDown, do(sender, e as KeyEventArgs)
+			if e.control, branch e.keyCode
+				on Keys.Z
+					Program.undo
+				on Keys.Y
+					Program.redo
+				on Keys.S
+					raise __SavePrompt
+				

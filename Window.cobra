@@ -36,6 +36,9 @@ class Window inherits Form is partial
 	var __raColorDiffGreen as TextBox
 	var __raColorDiffBlue as TextBox
 
+	event __SavePrompt as Action
+	event __OpenPrompt as Action
+
 	cue init
 
 		base.init
@@ -236,4 +239,6 @@ class Window inherits Form is partial
 
 		__setupHelpText
 
-		__setupHandlers
+		__setupControlHandlers
+
+		__setupKeyHandlers
