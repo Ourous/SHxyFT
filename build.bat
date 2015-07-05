@@ -1,1 +1,1 @@
-cobra Pixel Program Renderer Window WindowHandlers WindowHelpText -d:0 -ert:1 -out:SHxyFT -turbo:1 -t:winexe -number:float64
+cobra Pixel Program Renderer Window WindowHandlers WindowHelpText WindowKeyHandlers -d:0 -ert:1 -out:SHxyFT -turbo:1 -t:winexe -number:float64
