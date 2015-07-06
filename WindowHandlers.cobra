@@ -178,7 +178,7 @@ class Window is partial
 			if num < 0, num = 0
 			if num >= 360, num = 0
 			
-			if isFullDecimal(__raSortAngle.text)
+			if isFullDecimal(__raSortAngle.text) and num <> __verifiedSortAngle
 
 				__raSortAngle.text = ( __verifiedSortAngle = num ).toString('0.#####')
 
@@ -196,7 +196,7 @@ class Window is partial
 
 			if num > __verifiedMaxRange, num = __verifiedMaxRange
 
-			if isFullDecimal(__raMinSortRange.text)
+			if isFullDecimal(__raMinSortRange.text) and num <> __verifiedMinRange
 
 				__raMinSortRange.text = (__verifiedMinRange = num).toString('0.#####')
 
@@ -214,7 +214,7 @@ class Window is partial
 
 			if num < __verifiedMinRange, num = __verifiedMinRange
 
-			if isFullDecimal(__raMaxSortRange.text)
+			if isFullDecimal(__raMaxSortRange.text) and num <> __verifiedMaxRange
 
 				__raMaxSortRange.text = (__verifiedMaxRange = num).toString('0.#####')
 
