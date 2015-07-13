@@ -9,6 +9,10 @@ class Window is partial
 		"""
 		Set the handler methods for the controls in the Window
 		"""
+		# TODO
+		# * redo the verfification for the input boxes
+		# * - possibly have them display labels when empty
+		# * - make invalid input handling more unintrusive for the user 
 
 		# universal save prompt
 		listen __SavePrompt, do
@@ -137,9 +141,6 @@ class Window is partial
 				__uxPreview.sizeMode = PictureBoxSizeMode.Zoom
 
 
-		# checks if a number is part-way through being made decimal notation
-		isFullDecimal = Func<of String, bool>(do(str as String)=Regex(r'^-?\d+(\.\d+)?$').isMatch(str))
-
 		# resize the preview when the control resizes
 		listen __uxPreview.resize, do(sender, e as EventArgs)
 
@@ -159,7 +160,7 @@ class Window is partial
 
 			Program.undo
 
-
+		
 		# handle the redo button
 		listen __uxRedo.click, do(sender, e as EventArgs)
 
@@ -167,20 +168,47 @@ class Window is partial
 
 
 		# verification for the sort angle box
+		valid as bool
+
+		validateNumericKeyPress = KeyEventHandler(do(sender, e as KeyEventArgs))
+			if not e.shift
+				branch e.keyCode
+					on Keys.D0 or Keys.D1 or Keys.D2 or Keys.D3 or Keys.D4 or Keys.D5 or Keys.D6 or Keys.D7 or Keys.D8 or Keys.D9 or Keys.Back
+						valid = true
+					on Keys.OemPeriod
+						if '.' not in sender.text, valid = true
+						else, valid = false
+					else, valid = false
+			else, valid = false
+
+		listen __raSortAngle.keyDown, validateNumericKeyPress
+		listen __raSortAngle.keyPress, do(sender, e as KeyPressEventArgs)
+			if not valid, e.handled = true
+		listen __raMinSortRange.keyDown, validateNumericKeyPress
+		listen __raMinSortRange.keyPress, do(sender, e as KeyPressEventArgs)
+			if not valid, e.handled = true
+		listen __raMaxSortRange.keyDown, validateNumericKeyPress
+		listen __raMaxSortRange.keyPress, do(sender, e as KeyPressEventArgs)
+			if not valid, e.handled = true
+
+
+			
+
 		listen __raSortAngle.textChanged, do(sender, e as EventArgs)
 
 			num as number
 
 			if __raSortAngle.text == nil or __raSortAngle.text == '', __raSortAngle.text = '0'
+			else if __raSortAngle.text.startsWith('.'), __raSortAngle.text = '0'+__raSortAngle.text
 
 			num = try number.parse(__raSortAngle.text to !) catch FormatException get __verifiedSortAngle
-
-			if num < 0, num = 0
-			if num >= 360, num = 0
 			
-			if isFullDecimal(__raSortAngle.text) and num <> __verifiedSortAngle
+			if not __raSortAngle.text.endsWith('.') and num <> __verifiedSortAngle
 
-				__raSortAngle.text = ( __verifiedSortAngle = num ).toString('0.#####')
+				if num < 0, num = 0
+				if num >= 360, num = 0
+
+				__raSortAngle.text = ( __verifiedSortAngle = num ).toString
 
 
 		# verification for the min range box
@@ -189,16 +217,17 @@ class Window is partial
 			num as number
 
 			if __raMinSortRange.text == nil or __raMinSortRange.text == '', __raMinSortRange.text = '0'
+			else if __raMinSortRange.text.startsWith('.'), __raMinSortRange.text = '0'+__raMinSortRange.text
 
 			num = try number.parse(__raMinSortRange.text to !) catch FormatException get __verifiedMinRange
 
-			num = boxMinMax(num)
+			if not __raMinSortRange.text.endsWith('.') and num <> __verifiedMinRange
 
-			if num > __verifiedMaxRange, num = __verifiedMaxRange
+				num = boxMinMax(num)
 
-			if isFullDecimal(__raMinSortRange.text) and num <> __verifiedMinRange
+				if num > __verifiedMaxRange, num = __verifiedMaxRange
 
-				__raMinSortRange.text = (__verifiedMinRange = num).toString('0.#####')
+				__raMinSortRange.text = (__verifiedMinRange = num).toString
 
 
 		# verification for the max range box
@@ -207,16 +236,17 @@ class Window is partial
 			num as number
 
 			if __raMaxSortRange.text == nil or __raMaxSortRange.text == '', __raMaxSortRange.text = '0'
+			else if __raMaxSortRange.text.startsWith('.'), __raMaxSortRange.text = '0'+__raMaxSortRange.text
 
 			num = try number.parse(__raMaxSortRange.text to !) catch FormatException get __verifiedMaxRange
 
-			num = boxMinMax(num)
+			if not __raMaxSortRange.text.endsWith('.') and num <> __verifiedMaxRange
 
-			if num < __verifiedMinRange, num = __verifiedMinRange
+				num = boxMinMax(num)
 
-			if isFullDecimal(__raMaxSortRange.text) and num <> __verifiedMaxRange
+				if num < __verifiedMinRange, num = __verifiedMinRange
 
-				__raMaxSortRange.text = (__verifiedMaxRange = num).toString('0.#####')
+				__raMaxSortRange.text = (__verifiedMaxRange = num).toString
 
 
 		# handler for the render / cancel button

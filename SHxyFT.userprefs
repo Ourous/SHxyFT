@@ -2,10 +2,10 @@
   <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug|x86" />
   <MonoDevelop.Ide.Workbench ActiveDocument="WindowHandlers.cobra">
     <Files>
-      <File FileName="Window.cobra" Line="10" Column="20" />
+      <File FileName="Window.cobra" Line="136" Column="23" />
       <File FileName="Program.cobra" Line="1" Column="1" />
       <File FileName="Pixel.cobra" Line="1" Column="1" />
-      <File FileName="WindowHandlers.cobra" Line="178" Column="23" />
+      <File FileName="WindowHandlers.cobra" Line="142" Column="1" />
       <File FileName="Renderer.cobra" Line="1" Column="1" />
       <File FileName="WindowHelpText.cobra" Line="1" Column="1" />
       <File FileName="WindowKeyHandlers.cobra" Line="1" Column="1" />
