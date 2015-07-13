@@ -194,7 +194,7 @@ class Window is partial
 
 			
 
-		listen __raSortAngle.textChanged, do(sender, e as EventArgs)
+		listen __raSortAngle.lostFocus, do(sender, e as EventArgs)
 
 			num as number
 
@@ -202,17 +202,15 @@ class Window is partial
 			else if __raSortAngle.text.startsWith('.'), __raSortAngle.text = '0'+__raSortAngle.text
 
 			num = try number.parse(__raSortAngle.text to !) catch FormatException get __verifiedSortAngle
-			
-			if not __raSortAngle.text.endsWith('.') and num <> __verifiedSortAngle
 
-				if num < 0, num = 0
-				if num >= 360, num = 0
+			if num < 0, num = 0
+			if num >= 360, num = 0
 
-				__raSortAngle.text = ( __verifiedSortAngle = num ).toString
+			__raSortAngle.text = ( __verifiedSortAngle = num ).toString
 
 
 		# verification for the min range box
-		listen __raMinSortRange.textChanged, do(sender, e as EventArgs)
+		listen __raMinSortRange.lostFocus, do(sender, e as EventArgs)
 
 			num as number
 
@@ -221,17 +219,15 @@ class Window is partial
 
 			num = try number.parse(__raMinSortRange.text to !) catch FormatException get __verifiedMinRange
 
-			if not __raMinSortRange.text.endsWith('.') and num <> __verifiedMinRange
+			num = boxMinMax(num)
 
-				num = boxMinMax(num)
+			if num > __verifiedMaxRange, num = __verifiedMaxRange
 
-				if num > __verifiedMaxRange, num = __verifiedMaxRange
-
-				__raMinSortRange.text = (__verifiedMinRange = num).toString
+			__raMinSortRange.text = (__verifiedMinRange = num).toString
 
 
 		# verification for the max range box
-		listen __raMaxSortRange.textChanged, do(sender, e as EventArgs)
+		listen __raMaxSortRange.lostFocus, do(sender, e as EventArgs)
 
 			num as number
 
@@ -240,13 +236,11 @@ class Window is partial
 
 			num = try number.parse(__raMaxSortRange.text to !) catch FormatException get __verifiedMaxRange
 
-			if not __raMaxSortRange.text.endsWith('.') and num <> __verifiedMaxRange
+			num = boxMinMax(num)
 
-				num = boxMinMax(num)
+			if num < __verifiedMinRange, num = __verifiedMinRange
 
-				if num < __verifiedMinRange, num = __verifiedMinRange
-
-				__raMaxSortRange.text = (__verifiedMaxRange = num).toString
+			__raMaxSortRange.text = (__verifiedMaxRange = num).toString
 
 
 		# handler for the render / cancel button
