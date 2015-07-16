@@ -217,7 +217,7 @@
 
 					#if g <= b >= r
 					if b and (b==g or g==g%b) and (b==r or r==r%b)
-						return 60 * (((r - g) / (b - if(r and g==g%r, g, r))) + 6) #if(g < r, g, r)
+						return 60 * (((r - g) / (b - if(r and g==g%r, g, r))) + 4) #if(g < r, g, r)
 
 					throw ArithmeticException('Tell Ourous that he messed up the hue indexer again: [pixel]@HUE')
 

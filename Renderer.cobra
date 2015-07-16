@@ -279,6 +279,7 @@ class Renderer
 				else if xs <> -1
 
 					Array.sort(indexes, pixels, xs, x-xs)
+	
 					for n in xs:x
 
 						# get byte array index from slice
@@ -490,6 +491,6 @@ class Renderer
 				if (num%range.a<>num or num==range.a) and (num%range.b==num or num==range.b)
 	
 					return true
-	
-	
+
+
 			return false
