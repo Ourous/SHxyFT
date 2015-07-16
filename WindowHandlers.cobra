@@ -57,49 +57,47 @@ class Window is partial
 			response = MessageBox.show(
 				'You have not saved the current image. Do you wish to save?',
 				'Save file?',
-				MessageBoxButtons.YesNo,
+				MessageBoxButtons.YesNoCancel,
 				MessageBoxIcon.Asterisk
 				)
 
 			if response == DialogResult.Yes
 
 				raise __SavePrompt
-				return true
 
-
-			return false
+			return response <> DialogResult.Cancel
 
 
 		# universal open prompt
 		listen __OpenPrompt, do
 
-			if not Program.saved, checkSave()
-
-			openDialog = OpenFileDialog(
-				defaultExt='png'
-				)
-
-			response = openDialog.showDialog
+			if Program.saved or checkSave()
+						
+				openDialog = OpenFileDialog(
+					defaultExt='png'
+					)
 	
-			if response == DialogResult.OK
+				response = openDialog.showDialog
+		
+				if response == DialogResult.OK
+		
+					file = openDialog.fileName
+		
+					try
+		
+						Program.sourceImage = Bitmap(file)
+						
+		
+					catch
+		
+						MessageBox.show(
+							'Unable to open file:\n "[file]"',
+							'Error',
+							MessageBoxButtons.OK,
+							MessageBoxIcon.Error
+							)
 	
-				file = openDialog.fileName
 	
-				try
-	
-					Program.sourceImage = Bitmap(file)
-					
-	
-				catch
-	
-					MessageBox.show(
-						'Unable to open file:\n "[file]"',
-						'Error',
-						MessageBoxButtons.OK,
-						MessageBoxIcon.Error
-						)
-
-
 		# handler for the open button
 		listen __uxOpen.click, do(sender, e as EventArgs)
 
@@ -176,20 +174,21 @@ class Window is partial
 					on Keys.D0 or Keys.D1 or Keys.D2 or Keys.D3 or Keys.D4 or Keys.D5 or Keys.D6 or Keys.D7 or Keys.D8 or Keys.D9 or Keys.Back
 						valid = true
 					on Keys.OemPeriod
-						if '.' not in sender.text, valid = true
+						if sender.tag to? int <> nil, valid = false
+						else if '.' not in sender.text, valid = true
 						else, valid = false
 					else, valid = false
 			else, valid = false
 
+		onValid = KeyPressEventHandler(do(sender, e as KeyPressEventArgs))
+			if not valid, e.handled = true
+
 		listen __raSortAngle.keyDown, validateNumericKeyPress
-		listen __raSortAngle.keyPress, do(sender, e as KeyPressEventArgs)
-			if not valid, e.handled = true
+		listen __raSortAngle.keyPress, onValid
 		listen __raMinSortRange.keyDown, validateNumericKeyPress
-		listen __raMinSortRange.keyPress, do(sender, e as KeyPressEventArgs)
-			if not valid, e.handled = true
+		listen __raMinSortRange.keyPress, onValid
 		listen __raMaxSortRange.keyDown, validateNumericKeyPress
-		listen __raMaxSortRange.keyPress, do(sender, e as KeyPressEventArgs)
-			if not valid, e.handled = true
+		listen __raMaxSortRange.keyPress, onValid
 
 
 			
@@ -348,41 +347,52 @@ class Window is partial
 
 
 		# use the same delegate to verify all the reference color byte fields
+		finalizeColorDiffBox = EventHandler(do(sender, e as EventArgs))
+
+			if sender inherits TextBox
+
+				sender.text = __verifiedComparisonColorValues[sender.tag to int].toString
+
+
 		verifyColorDiffBox = EventHandler(do(sender, e as EventArgs))
 			
 			if sender inherits TextBox
 
 				num as uint8
-	
-				try
-	
-					if sender.text == nil or sender.text == '', num = 0u8
-					else, num = uint8.parse(sender.text to !)
-	
-	
+
+				if sender.text == nil or sender.text == '', num = 0u8
+				else, try
+					num = uint8.parse(sender.text to !)
 				catch FormatException
-	
 					num = __verifiedComparisonColorValues[sender.tag to int]
-	
-	
 				catch OverflowException
-	
 					num = 255u8
-	
-	
-				if num <> __verifiedComparisonColorValues[sender.tag to int] or num.toString <> sender.text
-	
-					sender.text = (__verifiedComparisonColorValues[sender.tag to int] = num).toString
+				__verifiedComparisonColorValues[sender.tag to int] = num
 
 			__uxLayoutColorDiff.backColor = Color.fromArgb(__verifiedComparisonColorValues[1], __verifiedComparisonColorValues[2], __verifiedComparisonColorValues[3])
 			__uxLayoutColorDiff.refresh
 
 
 		# assign verifier to all the fields
+		listen __raColorDiffAlpha.keyDown, validateNumericKeyPress
+		listen __raColorDiffAlpha.keyPress, onValid
 		listen __raColorDiffAlpha.textChanged, verifyColorDiffBox
+		listen __raColorDiffAlpha.lostFocus, finalizeColorDiffBox
+
+		listen __raColorDiffRed.keyDown, validateNumericKeyPress
+		listen __raColorDiffRed.keyPress, onValid
 		listen __raColorDiffRed.textChanged, verifyColorDiffBox
+		listen __raColorDiffRed.lostFocus, finalizeColorDiffBox
+
+		listen __raColorDiffGreen.keyDown, validateNumericKeyPress
+		listen __raColorDiffGreen.keyPress, onValid
 		listen __raColorDiffGreen.textChanged, verifyColorDiffBox
+		listen __raColorDiffGreen.lostFocus, finalizeColorDiffBox
+
+		listen __raColorDiffBlue.keyDown, validateNumericKeyPress
+		listen __raColorDiffBlue.keyPress, onValid
 		listen __raColorDiffBlue.textChanged, verifyColorDiffBox
+		listen __raColorDiffBlue.lostFocus, finalizeColorDiffBox
 
 		# check if the index type needs the reference color input to be active
 		listen __raIndexType.selectedValueChanged, do(sender, e as EventArgs)
@@ -453,4 +463,5 @@ class Window is partial
 
 
 			# prompt the user to save if they haven't
-			if not Program.saved, checkSave()
+			if Program.saved or checkSave(), pass
+			else, e.cancel = true
